@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+
+# Environment variables
+.env
+.env*
+
+# Database
+db.sqlite3
+*.sqlite3
+
+# Logs
+*.log
+
+# Django media
+media/
+
+# Security keys
+*.pem
+*.key
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
