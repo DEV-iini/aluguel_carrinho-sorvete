@@ -1,4 +1,5 @@
 from django.db import models
+from PIL import Image
 
 # Create your models here.
 class Carrinho(models.Model):
@@ -12,9 +13,22 @@ class Sorvete(models.Model):
     nome_sorvete = models.CharField(max_length=200)
     preco = models.DecimalField(max_digits=5, decimal_places=2)
     quantidade = models.IntegerField(default=0)
+    imagem = models.ImageField(upload_to='sabores/', null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if self.imagem:
+            img = Image.open(self.imagem.path)
+
+            max_size = (400, 400)
+            img.thumbnail(max_size)
+
+            img.save(self.imagem.path)
 
     def __str__(self):
-        return self.id
+        return self.nome_sorvete
+
     
 class Cliente(models.Model):
     nome_cliente = models.CharField(max_length=200)
@@ -23,7 +37,7 @@ class Cliente(models.Model):
     email = models.CharField(max_length=200)
 
     def __str__(self):
-        return self.id
+        return self.nome_cliente
 
 class Reserva(models.Model):
     id_cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
