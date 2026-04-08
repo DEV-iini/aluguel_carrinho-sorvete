@@ -51,7 +51,7 @@ class Reserva(models.Model):
     id_cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
     id_carrinho = models.ForeignKey(Carrinho, on_delete=models.CASCADE)
     data_evento = models.DateField("Data do evento")
-    valor_pedido = models.DecimalField(max_digits=6, decimal_places=2)
+    valor_pedido = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pendente')
     descricao = models.CharField(max_length=500)
     disponibilidade = models.BooleanField(default=False)
@@ -105,5 +105,5 @@ class Reserva(models.Model):
 class ReservaProduto(models.Model):
     # Atualização adicionada quantidade_escolhida
     id_reserva = models.ForeignKey(Reserva, on_delete=models.CASCADE, related_name="itens")
-    id_sorvete = models.ForeignKey(Sorvete, on_delete=models.CASCADE) # Um por linha
+    id_sorvete = models.ForeignKey(Sorvete, on_delete=models.CASCADE, null=True) # Um por linha
     quantidade_escolhida = models.IntegerField(default=1)
