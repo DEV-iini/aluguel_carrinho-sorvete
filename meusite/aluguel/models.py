@@ -1,6 +1,9 @@
 from django.db import models
 from PIL import Image
 from decimal import Decimal
+from django.core.exceptions import ValidationError
+from datetime import date, timedelta
+import urllib.parse
 
 # Create your models here.
 class Carrinho(models.Model):
@@ -53,8 +56,44 @@ class Reserva(models.Model):
     data_evento = models.DateField("Data do evento")
     valor_pedido = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pendente')
-    descricao = models.CharField(max_length=500)
+    descricao = models.CharField(max_length=500, blank=True, null=True)
     disponibilidade = models.BooleanField(default=False)
+
+    def clean(self):
+        super().clean()
+
+        # REGRA 1: Prazo Mínimo (24h)
+        prazo_minimo = date.today() + timedelta(days=1)
+        if self.data_evento < prazo_minimo:
+            raise ValidationError(
+                f"Reservas devem ser feitas com 24h de antecedência. "
+                f"A data mais próxima disponível é {prazo_minimo.strftime('%d/%m/%Y')}."
+            )
+        
+        # REGRA 2: Bloqueio de Edição
+        if self.pk: # Se a reserva já existe no banco
+            original = Reserva.objects.get(pk=self.pk)
+            if original.status == 'confirmado' and self.status == 'confirmado':
+                # Por agora, vamos garantir que o Admin saiba que está editando algo confirmado
+                pass
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+
+        # Lógica de estoque ao confirmar
+        if self.pk:
+            original = Reserva.objects.get(pk=self.pk)
+            if original.status != 'confirmado' and self.status == 'confirmado':
+                self.baixar_estoque_real()
+
+        super().save(*args, **kwargs)
+
+    def baixar_estoque_real(self):
+        """Reduz as quantidades do estoque de cada sorvete"""
+        for item in self.itens.all():
+            sorvete = item.id_sorvete
+            sorvete.quantidade -= item.quantidade_escolhida
+            sorvete.save()
 
     def subtotal_sorvetes(self):
         """Calcula APENAS o valor dos produtos escolhidos."""
@@ -70,6 +109,24 @@ class Reserva(models.Model):
     def total_pedido(self):
         """Soma as duas partes para dar o valor final ao cliente."""
         return self.subtotal_sorvetes() + self.taxa_aluguel()
+    
+    def gerar_link_whatsapp(self):
+        # Texto da mensagem
+        texto = (
+            f"Olá! Gostaria de confirmar minha reserva (ID: {self.id}).\n"
+            f"Data: {self.data_evento}\n"
+            f"Total dos Produtos: R$ {self.subtotal_sorvetes()}\n"
+            f"Taxa de Aluguel: R$ {self.taxa_aluguel()}\n"
+            f"Total Geral: R$ {self.total_pedido()}\n\n"
+            f"*Atenção:* Este valor não inclui frete, que será cotado via Lalamove no dia do evento."
+        )
+
+        # Codifica o texto para URL (espaços viram %20, etc)
+        texto_url = urllib.parse.quote(texto)
+
+        # Retorna o link completo (substitua pelo seu número)
+        return f"https://wa.me/5511?????????text={texto_url}"
+
 
     @classmethod
     def vagas_disponiveis(cls, data_desejada):
