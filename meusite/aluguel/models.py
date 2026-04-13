@@ -18,6 +18,7 @@ class Sorvete(models.Model):
     preco = models.DecimalField(max_digits=5, decimal_places=2)
     quantidade = models.IntegerField(default=0)
     imagem = models.ImageField(upload_to='sabores/', null=True, blank=True)
+    ativo = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -52,7 +53,7 @@ class Reserva(models.Model):
 
 
     id_cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
-    id_carrinho = models.ForeignKey(Carrinho, on_delete=models.CASCADE)
+    id_carrinho = models.ForeignKey(Carrinho, null=True, blank=True, on_delete=models.SET_NULL)
     data_evento = models.DateField("Data do evento")
     valor_pedido = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pendente')
@@ -78,7 +79,14 @@ class Reserva(models.Model):
                 pass
 
     def save(self, *args, **kwargs):
+        # 1. Primeiro, executamos as validações
         self.full_clean()
+
+        # 2. Calculamos o valor REAL agora e salvamos no campo do banco
+        # Isso garante que, se o preço do sorvete subir amanhã, 
+        # esta reserva mantenha o preço de hoje.
+        if not self.valor_pedido or self.status == 'pendente':
+            self.valor_pedido = self.total_pedido()
 
         # Lógica de estoque ao confirmar
         if self.pk:
@@ -104,6 +112,12 @@ class Reserva(models.Model):
         """Calcula APENAS a taxa, aplicando a regra de gratuidade."""
         if self.subtotal_sorvetes() >= 300:
             return Decimal('0.00')
+        
+        # Se ainda não foi atribuído um carrinho (como na criação via API), 
+        # podemos retornar 0 ou um valor padrão para não quebrar o cálculo.
+        if not self.id_carrinho:
+            return Decimal('0.00') # Ou defina um valor fixo padrão aqui
+        
         return self.id_carrinho.preco_diaria
     
     def total_pedido(self):
