@@ -1,6 +1,6 @@
 import json
 from django.http import JsonResponse
-from .models import Sorvete, Reserva, ReservaProduto, Carrinho
+from .models import Sorvete, Reserva, ReservaProduto, Carrinho, Cliente
 from django.db.models import Count
 from django.db import transaction
 
