@@ -1,0 +1,18 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reserva Oggi Sorvetes</title>
+    <link rel="stylesheet" href="{% static 'aluguel/css/style.css' %}">
+</head>
+<body>
+    {% csrf_token %} <section id="calendario">...</section>
+    <section id="sabores">...</section>
+
+    <div id="popupOverlay" style="display:none;">...</div>
+
+    <script src="{% static 'reserva/js/main.js' %}"></script>
+</body>
+</html>
