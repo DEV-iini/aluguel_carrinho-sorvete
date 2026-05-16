@@ -21,6 +21,11 @@ class Sorvete(models.Model):
     ativo = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
+        # Só tenta calcular o total se a reserva já tiver ID
+        if self.pk: 
+            if not self.valor_pedido or self.status == 'pendente':
+                self.valor_pedido = self.total_pedido()
+
         super().save(*args, **kwargs)
 
         if self.imagem:
@@ -39,7 +44,7 @@ class Cliente(models.Model):
     nome_cliente = models.CharField(max_length=200)
     endereco = models.CharField(max_length=300)
     telefone = models.CharField(max_length=20)
-    email = models.CharField(max_length=200)
+    email = models.CharField(max_length=200, null=True, blank=True)
 
     def __str__(self):
         return self.nome_cliente
@@ -79,21 +84,16 @@ class Reserva(models.Model):
                 pass
 
     def save(self, *args, **kwargs):
-        # 1. Primeiro, executamos as validações
-        self.full_clean()
-
-        # 2. Calculamos o valor REAL agora e salvamos no campo do banco
-        # Isso garante que, se o preço do sorvete subir amanhã, 
-        # esta reserva mantenha o preço de hoje.
-        if not self.valor_pedido or self.status == 'pendente':
-            self.valor_pedido = self.total_pedido()
-
-        # Lógica de estoque ao confirmar
+        # 1. Se a reserva já existe no banco (tem PK)...
         if self.pk:
-            original = Reserva.objects.get(pk=self.pk)
-            if original.status != 'confirmado' and self.status == 'confirmado':
-                self.baixar_estoque_real()
-
+            # ...e se o valor não foi enviado manualmente ou está pendente
+            # ele recalcula baseado nos itens vinculados.
+            if not self.valor_pedido or self.status == 'pendente':
+                self.valor_pedido = self.total_pedido()
+        
+        # 2. Se a reserva é NOVA (não tem PK), o Django pula o cálculo acima
+        # e usa o valor_pedido=0 que enviamos na api.py, evitando o erro.
+        
         super().save(*args, **kwargs)
 
     def baixar_estoque_real(self):
@@ -109,16 +109,15 @@ class Reserva(models.Model):
         return Decimal(total)
     
     def taxa_aluguel(self):
-        """Calcula APENAS a taxa, aplicando a regra de gratuidade."""
+        """Calcula a taxa com base no subtotal e carrinhos ativos."""
         if self.subtotal_sorvetes() >= 300:
             return Decimal('0.00')
         
-        # Se ainda não foi atribuído um carrinho (como na criação via API), 
-        # podemos retornar 0 ou um valor padrão para não quebrar o cálculo.
-        if not self.id_carrinho:
-            return Decimal('0.00') # Ou defina um valor fixo padrão aqui
-        
-        return self.id_carrinho.preco_diaria
+        # Busca o preço de um carrinho ativo no sistema
+        carrinho_padrao = Carrinho.objects.filter(status=True).first()
+        if carrinho_padrao:
+            return carrinho_padrao.preco_diaria
+        return Decimal('50.00') # Valor de fallback caso não haja carrinhos no banco
     
     def total_pedido(self):
         """Soma as duas partes para dar o valor final ao cliente."""

@@ -1,129 +1,108 @@
 import json
 from django.http import JsonResponse
-from .models import Sorvete, Reserva, ReservaProduto, Carrinho, Cliente
-from django.db.models import Count
 from django.db import transaction
+from django.db.models import Count
+from django.views.decorators.csrf import csrf_exempt
+from .models import Sorvete, Reserva, ReservaProduto, Carrinho, Cliente
+from decimal import Decimal
 
 # --- API DE SABORES ---
 def api_sabores(request):
-    """Retorna todos os sabores ativos com suas respectivas fotos"""
+    """Retorna todos os sabores ativos"""
     sabores = Sorvete.objects.filter(ativo=True)
-
-    lista_sabores = []
-
-    for s in sabores:
-        lista_sabores.append({
-            "id": s.id,
-            "nome": s.nome_sorvete,
-            "preco": float(s.preco),
-            "imagem_url": s.imagem.url if s.imagem else ""
-        })
-
-    return JsonResponse(lista_sabores, safe=False)
+    lista = [{
+        "id": s.id,
+        "nome": s.nome_sorvete,
+        "preco": str(s.preco), # String para precisão no JS
+        "imagem_url": s.imagem.url if s.imagem else ""
+    } for s in sabores]
+    return JsonResponse(lista, safe=False)
 
 # --- API DE DISPONIBILIDADE ---
 def api_disponibilidade(request):
-    """Informa ao calendário quais dias estão bloqueados ou lotados"""
-    mes_ref = request.GET.get('mes') # Recebe algo como "2026-04"
+    mes_ref = request.GET.get('mes')
+    if not mes_ref:
+        return JsonResponse({"ocupacao": {}, "total_carrinhos": 0})
 
-    if not mes_ref or '-' not in mes_ref:
-        return JsonResponse({"bloqueios": [], "reservas_por_dia": {}})
-    
     try:
         ano, mes = map(int, mes_ref.split('-'))
-
-        # 1. Total de carrinhos operacionais no sistema
         total_carrinhos = Carrinho.objects.filter(status=True).count()
 
-        # 2. Contagem de reservas ocupando carrinhos (ignora as canceladas)
         contagem = (
             Reserva.objects.filter(data_evento__year=ano, data_evento__month=mes)
-            .exclude(status='cancelado') 
+            .exclude(status='cancelado')
             .values('data_evento')
             .annotate(total=Count('id'))
         )
 
-        reservas_por_dia = {}
-        bloqueios = []
-
-        for item in contagem:
-            data_iso = item['data_evento'].strftime('%Y-%m-%d')
-            total = item['total']
-            reservas_por_dia[data_iso] = total
-
-            # Se atingiu o limite de carrinhos físicos, adiciona à lista de bloqueio
-            if total >= total_carrinhos:
-                bloqueios.append(data_iso)
+        # Criamos um dicionário: {"2026-05-15": 2, "2026-05-16": 1}
+        dados_ocupacao = {
+            item['data_evento'].strftime('%Y-%m-%d'): item['total'] 
+            for item in contagem
+        }
 
         return JsonResponse({
-            "bloqueios": bloqueios, 
-            "reservas_por_dia": reservas_por_dia
+            "total_carrinhos": total_carrinhos,
+            "ocupacao": dados_ocupacao
         })
-    
     except ValueError:
-        return JsonResponse({"erro": "Formato de data inválido"}, status=400)
-
+        return JsonResponse({"erro": "Data inválida"}, status=400)
+    
 # --- API DE CRIAR RESERVA ---
+@csrf_exempt
 def api_criar_reserva(request):
-    """Recebe os dados do formulário e salva a reserva real no banco de dados"""
-    if request.method == "POST":
+    if request.method == 'POST':
         try:
-            dados = json.loads(request.body)
+            data = json.loads(request.body)
+            
+            # 1. Cria o Cliente (Email opcional tratado)
+            email_input = data.get('email')
+            cliente = Cliente.objects.create(
+                nome_cliente=data.get('nome'),
+                telefone=data.get('telefone'),
+                endereco=data.get('endereco'),
+                # Garante que string vazia vire NULL no banco
+                email=email_input if email_input and email_input.strip() else None
+            )
 
-            # Usamos o transaction.atomic para garantir que se a criação dos itens falhar,
-            # a reserva e o cliente não sejam salvos sozinhos. Tudo ou nada.
-            with transaction.atomic():
+            # 2. PARTE 1: Criar a "Casca" da Reserva (Sem itens ainda)
+            # Definimos valor_pedido=0 para o save() do model não tentar 
+            # calcular o total_pedido() antes de termos o ID.
+            reserva = Reserva(
+                id_cliente=cliente,
+                data_evento=data.get('data'),
+                descricao=data.get('descricao'), # Nova observação do cliente
+                status='pendente',
+                valor_pedido=0 
+            )
+            reserva.save() # Aqui a reserva ganha a Primary Key (ID)
+
+            # 3. PARTE 2: Vincular os Itens (Agora com a PK da reserva)
+            sabores_selecionados = data.get('sabores', [])
+            for item in sabores_selecionados:
+                # Busca o sorvete pelo ID enviado pelo JS
+                sorvete = Sorvete.objects.get(id=item['id'])
                 
-                # 1. Gestão do Cliente
-                # Tenta encontrar um cliente pelo telefone, se não existir, cria com os dados fornecidos
-                cliente, _ = Cliente.objects.get_or_create(
-                    telefone=dados.get('cliente_telefone'),
-                    defaults={
-                        'nome_cliente': dados.get('cliente_nome'),
-                        'email': dados.get('cliente_email', 'nao@informado.com'),
-                        'endereco': 'A definir via WhatsApp' # O endereço final costuma ser refinado no chat
-                    }
+                ReservaProduto.objects.create(
+                    id_reserva=reserva,
+                    id_sorvete=sorvete,
+                    quantidade_escolhida=item['qtd']
                 )
 
-                # 2. Criação da Reserva
-                # O campo valor_pedido será calculado automaticamente pelo save() do seu model
-                nova_reserva = Reserva.objects.create(
-                    id_cliente=cliente,
-                    data_evento=dados.get('data'),
-                    descricao=f"Obs: {dados.get('observacoes', '')}",
-                    status='pendente'
-                    # id_carrinho fica vazio (null) até você definir no Admin
-                )
+            # 4. PARTE 3: Atualização do Valor Final
+            # Agora que os itens existem, podemos pegar o total que veio do JS
+            # ou forçar o Python a recalcular usando os itens que acabamos de criar.
+            reserva.valor_pedido = data.get('total_valor', 0)
+            reserva.save() # Salva novamente com o valor correto e itens vinculados
 
-                # 3. Adicionar os Sabores Selecionados
-                # Esperamos que o front-end envie uma lista de IDs em 'ids_sabores'
-                ids_sabores = dados.get('ids_sabores', [])
-                
-                if not ids_sabores:
-                    raise ValueError("É necessário selecionar pelo menos um sabor.")
-
-                for sabor_id in ids_sabores:
-                    sabor = Sorvete.objects.get(id=sabor_id)
-                    ReservaProduto.objects.create(
-                        id_reserva=nova_reserva,
-                        id_sorvete=sabor,
-                        quantidade_escolhida=1  # Padrão inicial de 1 unidade por sabor
-                    )
-
-            # Se chegou aqui, a transação foi concluída com sucesso
             return JsonResponse({
-                "success": True,
-                "reserva_id": nova_reserva.id,
-                "status": nova_reserva.status,
-                "valor_total": float(nova_reserva.valor_pedido),
-                "whatsapp_url": nova_reserva.gerar_link_whatsapp()
+                'status': 'sucesso', 
+                'whatsapp_url': reserva.gerar_link_whatsapp()
             }, status=201)
 
+        except Sorvete.DoesNotExist:
+            return JsonResponse({'status': 'erro', 'message': 'Um dos sabores selecionados não foi encontrado.'}, status=400)
         except Exception as e:
-            # Qualquer erro aqui dentro desfaz as alterações no banco (Rollback)
-            return JsonResponse({
-                "success": False,
-                "erro": str(e)
-            }, status=400)
-
-    return JsonResponse({"erro": "Método não permitido"}, status=405)
+            return JsonResponse({'status': 'erro', 'message': str(e)}, status=400)
+    
+    return JsonResponse({'status': 'erro', 'message': 'Método não permitido'}, status=405)

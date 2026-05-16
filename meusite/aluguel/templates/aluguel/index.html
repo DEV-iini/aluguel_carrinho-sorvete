@@ -4,15 +4,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reserva Oggi Sorvetes</title>
+    <title>Aluguel de Carrinhos de Sorvete</title>
+    
     <link rel="stylesheet" href="{% static 'aluguel/css/style.css' %}">
+    
+    <!-- FullCalendar CDN -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
 </head>
 <body>
-    {% csrf_token %} <section id="calendario">...</section>
-    <section id="sabores">...</section>
 
-    <div id="popupOverlay" style="display:none;">...</div>
+<div class="container">
+    <header>
+        <h1>🍦 Aluguel de Carrinhos</h1>
+        <p>Escolha seus sabores favoritos e reserve sua data.</p>
+    </header>
 
-    <script src="{% static 'reserva/js/main.js' %}"></script>
+    <!-- 1. SEÇÃO DE SABORES -->
+    <section>
+        <h2>1. Selecione os Sabores</h2>
+        <div id="lista-sorvetes" class="card-container">
+            <!-- Preenchido via JS -->
+        </div>
+    </section>
+
+    <!-- 2. SEÇÃO DO CALENDÁRIO -->
+    <section class="calendario-secao">
+        <h2>2. Escolha a Data do Evento</h2>
+        <p>As cores indicam a disponibilidade da nossa frota para o dia selecionado.</p>
+        
+        <div class="legenda">
+            <div class="legenda-item"><span class="ponto livre"></span> Disponível</div>
+            <div class="legenda-item"><span class="ponto alerta"></span> Metade Ocupado</div>
+            <div class="legenda-item"><span class="ponto critico"></span> Últimas Unidades</div>
+            <div class="legenda-item"><span class="ponto esgotado"></span> Esgotado</div>
+        </div>
+        
+        <div id="calendar-grid" class="calendar-grid">
+            <!-- Gerado via main.js -->
+        </div>
+    </section>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <button id="btn-abrir-reserva" class="btn-finalizar" onclick="abrirModal()">
+            🛒 Revisar e Finalizar Reserva
+        </button>
+    </div>
+</div>
+
+<!-- MODAL DE FINALIZAÇÃO -->
+<div id="modal-reserva" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="fecharModal()">&times;</span>
+        
+        <h2>Resumo do Pedido</h2>
+        <div id="resumo-pedido" class="nota-fiscal">
+            <p>Selecione sabores e uma data para ver o resumo.</p>
+        </div>
+
+        <form id="form-contato" onsubmit="event.preventDefault(); finalizarPedido();">
+            <div class="input-group">
+                <label for="cli-nome">Nome Completo*</label>
+                <!-- Trava de 80 caracteres -->
+                <input type="text" id="cli-nome" required maxlength="80" placeholder="Seu nome">
+            </div>
+
+            <div class="input-group">
+                <label for="cli-tel">WhatsApp*</label>
+                <!-- Trava de 15 caracteres para máscara -->
+                <input type="text" id="cli-tel" required maxlength="15" onkeyup="mascaraTelefone(this)" placeholder="(00) 00000-0000">
+            </div>
+
+            <div class="input-group">
+                <label for="cli-email">E-mail (Opcional)</label>
+                <input type="email" id="cli-email" maxlength="100" placeholder="seu@email.com">
+            </div>
+
+            <div class="input-group">
+                <label for="cli-end">Endereço de Entrega*</label>
+                <input type="text" id="cli-end" required maxlength="200" placeholder="Rua, número e bairro do evento">
+            </div>
+
+            <div class="input-group">
+                <label for="cli-obs">Observações/Dúvidas</label>
+                <textarea id="cli-obs" rows="3" maxlength="400" placeholder="Ex: Horário de início..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-finalizar" style="background-color: #25d366;">
+                🚀 Confirmar Reserva no WhatsApp
+            </button>
+        </form>
+    </div>
+</div>
+
+<script src="{% static 'aluguel/js/main.js' %}"></script>
+<script>
+    function abrirModal() {
+        document.getElementById('modal-reserva').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+    function fecharModal() {
+        document.getElementById('modal-reserva').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+    window.onclick = function(event) {
+        if (event.target == document.getElementById('modal-reserva')) fecharModal();
+    }
+</script>
 </body>
 </html>
