@@ -1,7 +1,3 @@
-/**
- * main.js - Versão Restaurada e Corrigida
- */
-
 let dataSelecionada = null;
 let totalCarrinhosGlobal = 0;
 let ocupacaoGlobal = {};
