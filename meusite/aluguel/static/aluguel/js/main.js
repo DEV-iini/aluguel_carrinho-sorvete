@@ -3,13 +3,14 @@ let totalCarrinhosGlobal = 0;
 let ocupacaoGlobal = {};
 let saboresCache = [];
 let carrinho = {};
+let quantidadeCarrinhosSelecionada = 1;
+let anoAtualVisualizacao = new Date().getFullYear(); 
+let mesAtualVisualizacao = new Date().getMonth() + 1;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
-    const hoje = new Date();
-    const mesAno = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
     carregarSabores();
-    carregarDisponibilidade(mesAno);
+    carregarMes(anoAtualVisualizacao, mesAtualVisualizacao);
 });
 
 // --- GESTÃO DE SABORES ---
@@ -92,11 +93,12 @@ function atualizarResumoReserva() {
     });
 
     // Simulação visual da sua regra taxa_aluguel do Python
-    const taxa = subtotalSorvetes >= 300 ? 0 : 50;
-    const totalGeral = subtotalSorvetes + taxa;
+    const taxaBase = subtotalSorvetes >= 300 ? 0 : 50;
+    const taxaTotal = taxaBase * quantidadeCarrinhosSelecionada;
+    const totalGeral = subtotalSorvetes + taxaTotal;
 
-    html += `<li style="display:flex;justify-content:space-between;margin-top:10px;color:${taxa === 0 ? 'green' : '#555'};">
-        <span>Aluguel Carrinho ${taxa === 0 ? '(Grátis!)' : ''}</span><span>R$ ${taxa.toFixed(2)}</span></li>`;
+    html += `<li style="display:flex;justify-content:space-between;margin-top:10px;color:${taxaTotal === 0 ? 'green' : '#555'};">
+        <span>Aluguel (${quantidadeCarrinhosSelecionada}x Carrinho) ${taxaTotal === 0 ? '(Grátis!)' : ''}</span><span>R$ ${taxaTotal.toFixed(2)}</span></li>`;
     
     html += '</ul>';
 
@@ -113,27 +115,57 @@ function atualizarResumoReserva() {
 
 // --- FINALIZAÇÃO E INTEGRAÇÃO (URL CORRIGIDA) ---
 
-async function finalizarPedido() {
+function finalizarPedido() {
     if (!dataSelecionada) return alert("Por favor, selecione uma data no calendário.");
     
     const selecionados = saboresCache
         .filter(s => (carrinho[s.id]?.qtd || 0) > 0)
         .map(s => ({ id: s.id, qtd: carrinho[s.id].qtd }));
 
-    if (selecionados.length === 0) return alert("Escolha pelo menos um sabor.");
+    if (selecionados.length === 0) return alert("Escolha pelo menos um sabor para continuar.");
+
+    const nome = document.getElementById('cli-nome').value.trim();
+    const telefone = document.getElementById('cli-tel').value.trim();
+    const endereco = document.getElementById('cli-end').value.trim();
+
+    // Injeta os dados no HTML do contrato
+    document.getElementById('ct-dados-cliente').innerHTML = `
+        <strong>Nome/Razão Social:</strong> ${nome}<br>
+        <strong>WhatsApp:</strong> ${telefone}<br>
+        <strong>Endereço:</strong> ${endereco}
+    `;
+    
+    document.getElementById('ct-qtd-carrinhos').innerText = quantidadeCarrinhosSelecionada;
+    document.getElementById('ct-endereco-evento').innerText = endereco;
+    const dataFormatada = dataSelecionada.split('-').reverse().join('/');
+    document.getElementById('ct-data-evento').innerText = dataFormatada;
+
+    // Reseta checkbox e botão
+    document.getElementById('aceite-contrato').checked = false;
+    document.getElementById('btn-enviar-reserva').disabled = true;
+
+    // Abre o contrato
+    abrirModalContrato();
+    document.getElementById('corpo-contrato-scroll').scrollTop = 0;
+}
+
+async function enviarFormularioServidor() {
+    const selecionados = saboresCache
+        .filter(s => (carrinho[s.id]?.qtd || 0) > 0)
+        .map(s => ({ id: s.id, qtd: carrinho[s.id].qtd }));
 
     const payload = {
         nome: document.getElementById('cli-nome').value.trim(),
-        telefone: document.getElementById('cli-tel').value.replace(/\D/g, ""), // Limpa máscara para o banco
+        telefone: document.getElementById('cli-tel').value.replace(/\D/g, ""), 
         endereco: document.getElementById('cli-end').value.trim(),
         email: document.getElementById('cli-email').value.trim(),
         descricao: document.getElementById('cli-obs').value.trim(),
         data: dataSelecionada,
+        quantidade_carrinhos: quantidadeCarrinhosSelecionada,
         sabores: selecionados
     };
 
     try {
-        // URL sincronizada com seu urls.py: path('api/reserva/criar/', ...)
         const response = await fetch('/api/reserva/criar/', { 
             method: 'POST',
             headers: { 
@@ -185,12 +217,24 @@ function getCookie(name) {
 async function carregarDisponibilidade(mesAno) {
     try {
         const response = await fetch(`/api/disponibilidade/?mes=${mesAno}`);
+        
+        // Verifica se a resposta do servidor foi um sucesso (código 200)
+        if (!response.ok) {
+            throw new Error(`Erro na API do Django: status ${response.status}`);
+        }
+        
         const data = await response.json();
-        totalCarrinhosGlobal = data.total_carrinhos;
-        ocupacaoGlobal = data.ocupacao;
-        renderizarCalendario(mesAno);
+        totalCarrinhosGlobal = data.total_carrinhos || 0;
+        ocupacaoGlobal = data.ocupacao || {};
+        
     } catch (e) {
-        console.error("Erro na disponibilidade:", e);
+        console.error("Aviso: Falha de comunicação com o servidor.", e);
+        
+        totalCarrinhosGlobal = 10; 
+        ocupacaoGlobal = {};
+        
+    } finally {
+        renderizarCalendario(mesAno);
     }
 }
 
@@ -199,7 +243,6 @@ function definirClasseOcupacao(dataISO) {
     if (totalCarrinhosGlobal === 0) return 'esgotado';
     const percentual = (reservas / totalCarrinhosGlobal) * 100;
     if (percentual >= 100) return 'esgotado';
-    if (percentual >= 75)  return 'critico';
     if (percentual >= 40)  return 'alerta';
     return 'livre';
 }
@@ -208,25 +251,66 @@ function renderizarCalendario(mesAno) {
     const grid = document.getElementById('calendar-grid');
     if (!grid) return;
     grid.innerHTML = '';
+    
     const [ano, mes] = mesAno.split('-').map(Number);
+    
+    // 1. Cria o cabeçalho com os dias da semana (Dom, Seg, Ter...)
+    const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    diasSemana.forEach(dia => {
+        const div = document.createElement('div');
+        div.style.fontWeight = 'bold';
+        div.style.textAlign = 'center';
+        div.style.paddingBottom = '10px';
+        div.style.color = '#555';
+        div.innerText = dia;
+        grid.appendChild(div);
+    });
+
+    // 2. Descobre em qual dia da semana cai o dia 1º do mês
+    const primeiroDia = new Date(ano, mes - 1, 1).getDay();
     const diasNoMes = new Date(ano, mes, 0).getDate();
     
+    // 3. Pega a data de hoje e zera as horas para comparar corretamente
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    // 4. Adiciona "blocos invisíveis" para alinhar o dia 1º no dia da semana correto
+    for (let i = 0; i < primeiroDia; i++) {
+        const divVazia = document.createElement('div');
+        grid.appendChild(divVazia);
+    }
+    
+    // 5. Renderiza os dias reais do mês
     for (let i = 1; i <= diasNoMes; i++) {
         const dataISO = `${ano}-${mes.toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+        // Cria a data do dia renderizado para verificar se já passou
+        const dataAtual = new Date(ano, mes - 1, i);
+        
         const div = document.createElement('div');
         div.classList.add('dia-calendario');
         div.innerText = i;
         
-        const classe = definirClasseOcupacao(dataISO);
-        div.classList.add(classe);
-        
-        if (classe !== 'esgotado') {
-            div.onclick = () => {
-                document.querySelectorAll('.dia-calendario').forEach(d => d.classList.remove('selecionado'));
-                div.classList.add('selecionado');
-                dataSelecionada = dataISO;
-                atualizarResumoReserva();
-            };
+        // BLOQUEIO DE SEGURANÇA: Se o dia for antes de hoje
+        if (dataAtual <= hoje) {
+            div.classList.add('esgotado');
+            div.style.opacity = '0.3';
+            div.style.cursor = 'not-allowed';
+            div.title = "Data no passado";
+        } else {
+            // Lógica normal para datas de hoje em diante
+            const classe = definirClasseOcupacao(dataISO);
+            div.classList.add(classe);
+            
+            if (classe !== 'esgotado') {
+                div.onclick = () => {
+                    document.querySelectorAll('.dia-calendario').forEach(d => d.classList.remove('selecionado'));
+                    div.classList.add('selecionado');
+                    dataSelecionada = dataISO;
+                    
+                    atualizarSeletorCarrinhos(dataISO);
+                    atualizarResumoReserva();
+                };
+            }
         }
         grid.appendChild(div);
     }
@@ -235,4 +319,94 @@ function renderizarCalendario(mesAno) {
 function validarLimite(input) {
     if (input.value.length > 3) input.value = input.value.slice(0, 3);
     if (parseInt(input.value) > 999) input.value = 999;
+}
+
+function abrirModalContrato() {
+    document.getElementById('modal-contrato').style.display = 'block';
+}
+
+function fecharModalContrato() {
+    document.getElementById('modal-contrato').style.display = 'none';
+}
+
+function alternarBotaoFinalizar() {
+    const check = document.getElementById('aceite-contrato').checked;
+    document.getElementById('btn-enviar-reserva').disabled = !check;
+}
+
+function atualizarSeletorCarrinhos(dataISO) {
+    const secao = document.getElementById('secao-carrinhos');
+    const select = document.getElementById('qtd-carrinhos');
+    const aviso = document.getElementById('aviso-disponibilidade');
+    if (!secao || !select) return;
+
+    const ocupados = ocupacaoGlobal[dataISO] || 0;
+    const disponiveisHoje = totalCarrinhosGlobal - ocupados;
+
+    if (disponiveisHoje <= 0) {
+        secao.style.display = 'none';
+        alert("Desculpe, não há carrinhos disponíveis para este dia.");
+        dataSelecionada = null;
+        return;
+    }
+
+    secao.style.display = 'block';
+    select.innerHTML = '';
+    aviso.innerText = `(${disponiveisHoje} de ${totalCarrinhosGlobal} carrinhos livres para este dia)`;
+
+    for (let i = 1; i <= disponiveisHoje; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.innerText = `${i} carrinho${i > 1 ? 's' : ''}`;
+        select.appendChild(opt);
+    }
+    
+    quantidadeCarrinhosSelecionada = 1; 
+}
+
+function atualizarQuantidadeCarrinhos() {
+    const select = document.getElementById('qtd-carrinhos');
+    quantidadeCarrinhosSelecionada = parseInt(select.value) || 1;
+    atualizarResumoReserva();
+}
+
+function carregarMes(ano, mes) {
+    const mesAno = `${ano}-${mes.toString().padStart(2, '0')}`;
+    atualizarLabelMesAno(ano, mes);
+    // Chama a sua API que já existe para buscar os dados deste novo mês
+    carregarDisponibilidade(mesAno);
+}
+
+function mudarMes(delta) {
+    mesAtualVisualizacao += delta;
+    
+    // Vira o ano se passar de Dezembro ou voltar de Janeiro
+    if (mesAtualVisualizacao > 12) {
+        mesAtualVisualizacao = 1;
+        anoAtualVisualizacao++;
+    } else if (mesAtualVisualizacao < 1) {
+        mesAtualVisualizacao = 12;
+        anoAtualVisualizacao--;
+    }
+    
+    carregarMes(anoAtualVisualizacao, mesAtualVisualizacao);
+}
+
+function atualizarLabelMesAno(ano, mes) {
+    const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    document.getElementById('mes-ano-display').innerText = `${nomesMeses[mes - 1]} ${ano}`;
+    
+    // Trava de Segurança: Bloqueia o botão "Anterior" se estiver no mês atual
+    const hoje = new Date();
+    const btnAnterior = document.getElementById('btn-mes-anterior');
+    
+    if (ano === hoje.getFullYear() && mes === hoje.getMonth() + 1) {
+        btnAnterior.disabled = true;
+        btnAnterior.style.opacity = '0.4';
+        btnAnterior.style.cursor = 'not-allowed';
+    } else {
+        btnAnterior.disabled = false;
+        btnAnterior.style.opacity = '1';
+        btnAnterior.style.cursor = 'pointer';
+    }
 }

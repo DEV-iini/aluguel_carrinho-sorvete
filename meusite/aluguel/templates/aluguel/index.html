@@ -32,15 +32,39 @@
         <h2>2. Escolha a Data do Evento</h2>
         <p>As cores indicam a disponibilidade da nossa frota para o dia selecionado.</p>
         
-        <div class="legenda">
-            <div class="legenda-item"><span class="ponto livre"></span> Disponível</div>
-            <div class="legenda-item"><span class="ponto alerta"></span> Metade Ocupado</div>
-            <div class="legenda-item"><span class="ponto critico"></span> Últimas Unidades</div>
-            <div class="legenda-item"><span class="ponto esgotado"></span> Esgotado</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0 10px 0; background: #f1f1f1; padding: 10px; border-radius: 6px;">
+            <button id="btn-mes-anterior" onclick="mudarMes(-1)" style="padding: 8px 15px; border: none; background: #ddd; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                &#10094; Anterior
+            </button>
+            <h3 id="mes-ano-display" style="margin: 0; color: #333; font-size: 1.2rem;">Mês Ano</h3>
+            <button id="btn-mes-proximo" onclick="mudarMes(1)" style="padding: 8px 15px; border: none; background: #e31837; color: white; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                Próximo &#10095;
+            </button>
         </div>
         
-        <div id="calendar-grid" class="calendar-grid">
-            <!-- Gerado via main.js -->
+        <div class="legenda">
+            <div class="legenda-item">
+                <span class="ponto livre"></span> Livre
+            </div>
+            <div class="legenda-item">
+                <span class="ponto alerta"></span> Poucas vagas
+            </div>
+            <div class="legenda-item">
+                <span class="ponto esgotado"></span> Esgotado
+            </div>
+        </div>
+
+        <div id="calendar-grid" class="calendar-grid"></div>
+    </section>
+
+    <section id="secao-carrinhos" style="margin-top: 20px; display: none;">
+        <h2>3. Quantidade de Carrinhos</h2>
+        <p>Quantos carrinhos você precisa para o seu evento?</p>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <label for="qtd-carrinhos"><strong>Carrinhos necessários:</strong></label>
+            <select id="qtd-carrinhos" onchange="atualizarQuantidadeCarrinhos()" style="padding: 8px; font-size: 1rem; border-radius: 5px;">
+                </select>
+            <span id="aviso-disponibilidade" style="color: #666; font-size: 0.9rem;"></span>
         </div>
     </section>
 
@@ -110,5 +134,59 @@
         if (event.target == document.getElementById('modal-reserva')) fecharModal();
     }
 </script>
+
+    <div id="modal-contrato" class="modal" style="display: none; z-index: 1001;">
+        <div class="modal-content" style="max-width: 750px; width: 90%;">
+            <span class="close" onclick="fecharModalContrato()">&times;</span>
+            
+            <div style="text-align: center; margin-bottom: 15px;">
+                <h2 style="margin: 0; color: #e31837;">CONTRATO DE COMODATO DE CARRINHO DE SORVETES</h2>
+                <p style="font-size: 0.85rem; color: #555; margin: 5px 0 0 0;"><strong>OGGI SORVETES</strong> | Instrumento Particular de Parceria</p>
+            </div>
+            
+            <div id="corpo-contrato-scroll" style="border: 1px solid #aaa; padding: 20px; height: 350px; overflow-y: scroll; background: #fff; font-size: 0.85rem; line-height: 1.5; text-align: justify; border-radius: 4px;">
+                
+                <strong>COMODANTE:</strong><br>
+                Razão Social: Hevon Comercio LTDA<br>
+                CNPJ: 38.467.951/0001-48<br>
+                Endereço: Av. Henriqueta Mendes Guerra, 1330 – Loja 16-H Terreo<br><br>
+
+                <strong>COMODATÁRIO(A):</strong><br>
+                <span id="ct-dados-cliente" style="background-color: #fff9c4; padding: 2px 4px; border-radius: 3px;">
+                    Preencha os dados no formulário anterior...
+                </span><br><br>
+
+                <p>As partes acima qualificadas têm, entre si, justo e contratado o presente Comodato, que se regerá pelas cláusulas e condições seguintes:</p>
+
+                <p><strong>I. OBJETO DO COMODATO:</strong> O presente contrato tem como objeto a entrega a título de Comodato de <strong id="ct-qtd-carrinhos" style="color:red;">__</strong> Carrinho(s) de Sorvete da marca CEM PRODUTOS PLÁSTICOS (“Equipamento”), de propriedade da COMODANTE.</p>
+                <p><strong>II. VALOR DO EQUIPAMENTO:</strong> O valor do equipamento descrito no item anterior é de R$ 2.500,00 (dois mil e quinhentos reais).</p>
+                <p><strong>III. LOCAL DO EVENTO:</strong> O equipamento será utilizado no endereço fornecido: <strong id="ct-endereco-evento">__</strong>.</p>
+                <p><strong>IV. PRAZO DE VIGÊNCIA DO CONTRATO:</strong> O prazo de vigência é de 1 (um) dia, balizado pela data do evento: <strong id="ct-data-evento">__</strong>.</p>
+
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+
+                <p><strong>1 –</strong> O <strong>COMODATÁRIO(A)</strong> declara que está ciente e de pleno acordo com as cláusulas, sob pena de rescisão e perdas e danos.</p>
+                <p><strong>2 –</strong> O Equipamento destina-se ao armazenamento dos Sorvetes Oggi, não podendo ser utilizado para fins comerciais de terceiros.</p>
+                <p><strong>3 –</strong> É vedado o armazenamento de quaisquer outros produtos no Equipamento.</p>
+                <p><strong>4 –</strong> Não é permitida a transferência do Equipamento para outro local sem autorização prévia da COMODANTE.</p>
+                <p><strong>5 a 16 –</strong> [Demais cláusulas de conservação, devolução no prazo estipulado, multas por atraso e eleição do Foro da Comarca de Barueri/SP confirmadas no ato do envio].</p>
+                <p><strong>17. DA PROTEÇÃO DE DADOS (LGPD):</strong> Autorizo a COMODANTE a tratar os dados pessoais fornecidos para fins logísticos e de segurança (Lei nº 13.709/2018).</p>
+            </div>
+
+            <div style="margin-top: 15px; background-color: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px dashed #ccc;">
+                <input type="checkbox" id="aceite-contrato" onchange="alternarBotaoFinalizar()" style="transform: scale(1.2); margin-right: 10px; cursor: pointer;">
+                <label for="aceite-contrato" style="cursor: pointer; font-weight: bold; font-size: 0.9rem;">
+                    Declaro que li, preenchi corretamente e aceito todos os termos do contrato de comodato acima, incluindo a responsabilidade pelo valor de R$ 2.500,00 por equipamento.
+                </label>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; gap: 10px; margin-top: 15px;">
+                <button type="button" class="btn-finalizar" style="background-color: #888; border: none; padding: 10px;" onclick="fecharModalContrato()">Voltar e Ajustar</button>
+                <button type="button" id="btn-enviar-reserva" class="btn-finalizar" style="background-color: #25d366; border: none; padding: 10px;" disabled onclick="enviarFormularioServidor()">
+                    🚀 Aceitar Contrato e Ir para o WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
