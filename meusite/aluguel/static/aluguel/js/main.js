@@ -410,3 +410,8 @@ function atualizarLabelMesAno(ano, mes) {
         btnAnterior.style.cursor = 'pointer';
     }
 }
+
+// Ativa e desativa o menu mobile
+document.querySelector('.menu-toggle').addEventListener('click', () => {
+    document.querySelector('.menu-links').classList.toggle('ativo');
+});

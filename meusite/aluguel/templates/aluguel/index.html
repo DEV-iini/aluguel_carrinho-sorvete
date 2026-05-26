@@ -13,11 +13,48 @@
 </head>
 <body>
 
+<header class="header-fixo">
+    <div class="container-header">
+        <div class="logo">
+            <img src="{% static 'img/logo-oggi.png' %}" alt="Oggi Sorvetes">
+        </div>
+        
+        <nav class="navegacao">
+            <button type="button" class="menu-toggle" id="js-menu-toggle">☰</button>
+
+            <ul class="menu-links" id="js-menu-links">
+                <li><a href="#como-funciona">Como funciona</a></li>
+                <li><a href="#lista-sorvetes">Sorvetes</a></li>
+                <li><a href="#calendar-grid">Calendário</a></li>
+                <li><a href="#duvidas-frequentes">Dúvidas</a></li>
+                <li><a href="#contato">Contato</a></li>
+            </ul>
+        </nav>
+    </div>
+</header>
+
 <div class="container">
-    <header>
-        <h1>🍦 Aluguel de Carrinhos</h1>
-        <p>Escolha seus sabores favoritos e reserve sua data.</p>
-    </header>
+    <section class="info-rapida">
+        <div class="info-item">
+            <strong>Retirada e devolução</strong>
+            <span>Retire em um dia e devolva no outro, dentro do nosso horário de funcionamento.</span>
+        </div>
+
+        <div class="info-item">
+            <strong>Capacidade média</strong>
+            <span>O carrinho comporta em média 200 sorvetes.</span>
+        </div>
+
+        <div class="info-item">
+            <strong>Refrigeração</strong>
+            <span>Mantém a refrigeração por cerca de 6 horas, dependendo do uso.</span>
+        </div>
+
+        <div class="info-item">
+            <strong>Entrega ou retirada</strong>
+            <span>Entrega via Lalamove ou retirada na loja com carro espaçoso.</span>
+        </div>
+    </section>
 
     <!-- 1. SEÇÃO DE SABORES -->
     <section>
@@ -133,6 +170,7 @@
     window.onclick = function(event) {
         if (event.target == document.getElementById('modal-reserva')) fecharModal();
     }
+
 </script>
 
     <div id="modal-contrato" class="modal" style="display: none; z-index: 1001;">
@@ -188,5 +226,40 @@
             </div>
         </div>
     </div>
+
+    <footer id="contato" class="footer-contato">
+        <div class="footer-conteudo">
+            <div class="footer-marca">
+                <img src="{% static 'img/logo-oggi.png' %}" alt="Oggi Sorvetes">
+                <p>Aluguel de carrinhos de sorvete para festas, empresas e eventos em Barueri e região.</p>
+                <p class="footer-destaque">Retirada na loja ou entrega via Lalamove.</p>
+            </div>
+
+            <div class="footer-coluna">
+                <h3>Contato</h3>
+                <a href="https://wa.me/551195603098" target="_blank" rel="noopener">WhatsApp: (11) 9560-3098</a>
+                <a href="https://www.instagram.com/" target="_blank" rel="noopener">Instagram</a>
+            </div>
+
+            <div class="footer-coluna">
+                <h3>Endereço</h3>
+                <p>Av. Henriqueta Mendes Guerra, 1330<br>Loja 16-H - Térreo<br>Centro - Barueri/SP</p>
+                <a href="https://www.google.com/maps/search/?api=1&query=Av.%20Henriqueta%20Mendes%20Guerra%201330%20Loja%2016-H%20Centro%20Barueri%20SP" target="_blank" rel="noopener">
+                    Ver localização no Google Maps
+                </a>
+            </div>
+
+            <div class="footer-coluna">
+                <h3>Horário</h3>
+                <p>Segunda a sexta<br>das 9h às 18h</p>
+                <p>Sábados e domingos<br>consulte disponibilidade</p>
+            </div>
+        </div>
+
+        <div class="footer-base">
+            <p>© 2026 Oggi Sorvetes Barueri. Todos os direitos reservados.</p>
+            <p>Hevon Comércio LTDA - CNPJ: 38.467.951/0001-48</p>
+        </div>
+    </footer>
 </body>
 </html>
