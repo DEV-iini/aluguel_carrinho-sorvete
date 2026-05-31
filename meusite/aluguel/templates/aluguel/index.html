@@ -164,6 +164,11 @@
             </details>
 
             <details>
+                <summary>Existe multa por atraso na devolução?</summary>
+                <p>Sim. A devolução deve ser feita no dia combinado e dentro do horário de funcionamento da loja. Em caso de atraso, será cobrada multa de R$ 50,00.</p>
+            </details>
+
+            <details>
                 <summary>Quantos sorvetes cabem no carrinho?</summary>
                 <p>O carrinho comporta em média 200 sorvetes.</p>
             </details>
@@ -192,15 +197,17 @@
 
     <!-- MODAL DE FINALIZAÇÃO -->
     <div id="modal-reserva" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-reserva-content">
             <span class="close" onclick="fecharModal()">&times;</span>
-            
-            <h2>Resumo do Pedido</h2>
-            <div id="resumo-pedido" class="nota-fiscal">
-                <p>Selecione sabores e uma data para ver o resumo.</p>
-            </div>
 
-            <form id="form-contato" onsubmit="event.preventDefault(); finalizarPedido();">
+            <div class="modal-scroll-area">
+                <h2>Resumo do Pedido</h2>
+
+                <div id="resumo-pedido" class="nota-fiscal">
+                    <p>Selecione sabores e uma data para ver o resumo.</p>
+                </div>
+
+                <form id="form-contato" onsubmit="event.preventDefault(); finalizarPedido();">
                 <div class="input-group">
                     <label for="cli-nome">Nome Completo*</label>
                     <!-- Trava de 80 caracteres -->
@@ -234,22 +241,9 @@
             </form>
         </div>
     </div>
+    </div>
 
     <script src="{% static 'aluguel/js/main.js' %}"></script>
-    <script>
-        function abrirModal() {
-            document.getElementById('modal-reserva').style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
-        function fecharModal() {
-            document.getElementById('modal-reserva').style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-        window.onclick = function(event) {
-            if (event.target == document.getElementById('modal-reserva')) fecharModal();
-        }
-
-    </script>
 
     <div id="modal-contrato" class="modal modal-contrato" style="display: none; z-index: 1001;">
     <div class="modal-content contrato-content">
@@ -286,7 +280,7 @@
                 <p><strong>2 –</strong> O Equipamento destina-se ao armazenamento dos Sorvetes Oggi, não podendo ser utilizado para fins comerciais de terceiros.</p>
                 <p><strong>3 –</strong> É vedado o armazenamento de quaisquer outros produtos no Equipamento.</p>
                 <p><strong>4 –</strong> Não é permitida a transferência do Equipamento para outro local sem autorização prévia da COMODANTE.</p>
-                <p><strong>5 a 16 –</strong> [Demais cláusulas de conservação, devolução no prazo estipulado, multas por atraso e eleição do Foro da Comarca de Barueri/SP confirmadas no ato do envio].</p>
+                <p><strong>5 – DEVOLUÇÃO E ATRASO:</strong> O equipamento deverá ser devolvido na data combinada e dentro do horário de funcionamento da COMODANTE. Em caso de atraso na devolução, será cobrada multa de R$ 50,00 (cinquenta reais), sem prejuízo de eventuais perdas e danos.</p>
                 <p><strong>17. DA PROTEÇÃO DE DADOS (LGPD):</strong> Autorizo a COMODANTE a tratar os dados pessoais fornecidos para fins logísticos e de segurança (Lei nº 13.709/2018).</p>
             </div>
         </div>

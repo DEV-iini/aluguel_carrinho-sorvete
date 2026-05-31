@@ -321,13 +321,33 @@ function validarLimite(input) {
     if (parseInt(input.value) > 999) input.value = 999;
 }
 
-function abrirModalContrato() {
-    document.getElementById('modal-contrato').style.display = 'block';
+function abrirModal() {
+    const temSabores = Object.values(carrinho).some(item => (item?.qtd || 0) > 0);
+
+    if (!dataSelecionada) {
+        alert("Por favor, selecione uma data no calendário antes de finalizar a reserva.");
+        return;
+    }
+
+    if (!temSabores) {
+        alert("Escolha pelo menos um sabor antes de finalizar a reserva.");
+        return;
+    }
+
+    document.getElementById('modal-reserva').style.display = 'block';
+    document.body.style.overflow = 'hidden';
 }
 
-function fecharModalContrato() {
-    document.getElementById('modal-contrato').style.display = 'none';
+function fecharModal() {
+    document.getElementById('modal-reserva').style.display = 'none';
+    document.body.style.overflow = 'auto';
 }
+
+window.onclick = function(event) {
+    if (event.target == document.getElementById('modal-reserva')) {
+        fecharModal();
+    }
+};
 
 function alternarBotaoFinalizar() {
     const check = document.getElementById('aceite-contrato').checked;

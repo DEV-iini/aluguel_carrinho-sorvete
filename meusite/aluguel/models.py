@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from datetime import date, timedelta
 import urllib.parse
+from django.utils.dateparse import parse_date
 
 # Create your models here.
 class Carrinho(models.Model):
@@ -124,21 +125,51 @@ class Reserva(models.Model):
         return self.subtotal_sorvetes() + self.taxa_aluguel()
     
     def gerar_link_whatsapp(self):
-        # Texto da mensagem
+        numero_whatsapp = "551141990035"
+
+        def moeda(valor):
+            return f"{valor:.2f}".replace(".", ",")
+        
+        if isinstance(self.data_evento, str):
+            data_obj = parse_date(self.data_evento)
+        else:
+            data_obj = self.data_evento
+
+        data_formatada = data_obj.strftime("%d/%m/%Y") if data_obj else str(self.data_evento)
+
+        itens_texto = ""
+        for item in self.itens.select_related("id_sorvete").all():
+            sorvete = item.id_sorvete
+            total_item = item.quantidade_escolhida * sorvete.preco
+
+            itens_texto += (
+                f"- {item.quantidade_escolhida}x {sorvete.nome_sorvete} "
+                f"(R$ {moeda(sorvete.preco)} un.) "
+                f"= R$ {moeda(total_item)}\n"
+            )
+
+        if not itens_texto:
+            itens_texto = "Nenhum sorvete informado.\n"
+
         texto = (
-            f"Olá! Gostaria de confirmar minha reserva (ID: {self.id}).\n"
-            f"Data: {self.data_evento}\n"
-            f"Total dos Produtos: R$ {self.subtotal_sorvetes()}\n"
-            f"Taxa de Aluguel: R$ {self.taxa_aluguel()}\n"
-            f"Total Geral: R$ {self.total_pedido()}\n\n"
+            f"Olá! Gostaria de confirmar minha reserva.\n\n"
+            f"*Reserva ID:* {self.id}\n"
+            f"*Cliente:* {self.id_cliente.nome_cliente}\n"
+            f"*Telefone:* {self.id_cliente.telefone}\n"
+            f"*Endereço:* {self.id_cliente.endereco}\n"
+            f"*Data do evento:* {data_formatada}\n\n"
+            f"*Resumo do pedido:*\n"
+            f"{itens_texto}\n"
+            f"*Total dos produtos:* R$ {moeda(self.subtotal_sorvetes())}\n"
+            f"*Taxa de aluguel:* R$ {moeda(self.taxa_aluguel())}\n"
+            f"*Total geral:* R$ {moeda(self.total_pedido())}\n\n"
+            f"*Observações:* {self.descricao or 'Nenhuma observação informada.'}\n\n"
             f"*Atenção:* Este valor não inclui frete, que será cotado via Lalamove no dia do evento."
         )
 
-        # Codifica o texto para URL (espaços viram %20, etc)
         texto_url = urllib.parse.quote(texto)
 
-        # Retorna o link completo (substitua pelo seu número)
-        return f"https://wa.me/5511?????????text={texto_url}"
+        return f"https://wa.me/{numero_whatsapp}?text={texto_url}"
 
 
     @classmethod
