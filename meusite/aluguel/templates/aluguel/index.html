@@ -13,175 +13,254 @@
 </head>
 <body>
 
-<header class="header-fixo">
-    <div class="container-header">
-        <div class="logo">
-            <img src="{% static 'img/logo-oggi.png' %}" alt="Oggi Sorvetes">
+    <header class="header-fixo">
+        <div class="container-header">
+            <div class="logo">
+                <img src="{% static 'img/logo-oggi.png' %}" alt="Oggi Sorvetes">
+            </div>
+            
+            <nav class="navegacao">
+                <button type="button" class="menu-toggle" id="js-menu-toggle">☰</button>
+
+                <ul class="menu-links" id="js-menu-links">
+                    <li><a href="#como-funciona">Como funciona</a></li>
+                    <li><a href="#lista-sorvetes">Sorvetes</a></li>
+                    <li><a href="#calendar-grid">Calendário</a></li>
+                    <li><a href="#duvidas-frequentes">Dúvidas</a></li>
+                    <li><a href="#contato">Contato</a></li>
+                </ul>
+            </nav>
         </div>
-        
-        <nav class="navegacao">
-            <button type="button" class="menu-toggle" id="js-menu-toggle">☰</button>
+    </header>
 
-            <ul class="menu-links" id="js-menu-links">
-                <li><a href="#como-funciona">Como funciona</a></li>
-                <li><a href="#lista-sorvetes">Sorvetes</a></li>
-                <li><a href="#calendar-grid">Calendário</a></li>
-                <li><a href="#duvidas-frequentes">Dúvidas</a></li>
-                <li><a href="#contato">Contato</a></li>
-            </ul>
-        </nav>
-    </div>
-</header>
+    <section class="hero-loja" id="inicio">
+        <div class="hero-loja-conteudo">
+            <div class="hero-texto">
+                <span class="hero-etiqueta">Oggi Sorvetes Barueri Centro</span>
 
-<div class="container">
-    <section class="info-rapida">
-        <div class="info-item">
-            <strong>Retirada e devolução</strong>
-            <span>Retire em um dia e devolva no outro, dentro do nosso horário de funcionamento.</span>
-        </div>
+                <h1>Aluguel de carrinho de sorvete para festas e eventos</h1>
 
-        <div class="info-item">
-            <strong>Capacidade média</strong>
-            <span>O carrinho comporta em média 200 sorvetes.</span>
-        </div>
+                <p>
+                    Escolha os sabores, consulte a disponibilidade da data e finalize sua solicitação
+                    com a nossa loja pelo WhatsApp.
+                </p>
 
-        <div class="info-item">
-            <strong>Refrigeração</strong>
-            <span>Mantém a refrigeração por cerca de 6 horas, dependendo do uso.</span>
-        </div>
+                <div class="hero-acoes">
+                    <a href="#lista-sorvetes" class="btn-hero btn-hero-principal">Começar reserva</a>
+                    <a href="#calendar-grid" class="btn-hero btn-hero-secundario">Ver calendário</a>
+                </div>
+            </div>
 
-        <div class="info-item">
-            <strong>Entrega ou retirada</strong>
-            <span>Entrega via Lalamove ou retirada na loja com carro espaçoso.</span>
+            <div class="hero-foto-placeholder" aria-label="Espaço reservado para foto da fachada da loja">
+                <img
+                    class="hero-fachada-img"
+                    src="{% static 'img/fachada-oggi-barueri.jpeg' %}"
+                    alt="Fachada da Oggi Sorvetes Barueri">
+            </div>
         </div>
     </section>
 
-    <!-- 1. SEÇÃO DE SABORES -->
-    <section>
-        <h2>1. Selecione os Sabores</h2>
-        <div id="lista-sorvetes" class="card-container">
-            <!-- Preenchido via JS -->
-        </div>
-    </section>
-
-    <!-- 2. SEÇÃO DO CALENDÁRIO -->
-    <section class="calendario-secao">
-        <h2>2. Escolha a Data do Evento</h2>
-        <p>As cores indicam a disponibilidade da nossa frota para o dia selecionado.</p>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0 10px 0; background: #f1f1f1; padding: 10px; border-radius: 6px;">
-            <button id="btn-mes-anterior" onclick="mudarMes(-1)" style="padding: 8px 15px; border: none; background: #ddd; border-radius: 4px; font-weight: bold; cursor: pointer;">
-                &#10094; Anterior
-            </button>
-            <h3 id="mes-ano-display" style="margin: 0; color: #333; font-size: 1.2rem;">Mês Ano</h3>
-            <button id="btn-mes-proximo" onclick="mudarMes(1)" style="padding: 8px 15px; border: none; background: #e31837; color: white; border-radius: 4px; font-weight: bold; cursor: pointer;">
-                Próximo &#10095;
-            </button>
-        </div>
-        
-        <div class="legenda">
-            <div class="legenda-item">
-                <span class="ponto livre"></span> Livre
+    <div class="container">
+        <section class="produto-info" id="como-funciona">
+            <div class="produto-imagem">
+                <img src="{% static 'img/carrinho-oggi.jpeg' %}" alt="Carrinho de sorvete Oggi para eventos">
             </div>
-            <div class="legenda-item">
-                <span class="ponto alerta"></span> Poucas vagas
-            </div>
-            <div class="legenda-item">
-                <span class="ponto esgotado"></span> Esgotado
-            </div>
-        </div>
 
-        <div id="calendar-grid" class="calendar-grid"></div>
-    </section>
+            <div class="info-rapida">
+                <div class="info-item">
+                    <strong>Retirada e devolução</strong>
+                    <span>Retire em um dia e devolva no outro, dentro do nosso horário de funcionamento.</span>
+                </div>
 
-    <section id="secao-carrinhos" style="margin-top: 20px; display: none;">
-        <h2>3. Quantidade de Carrinhos</h2>
-        <p>Quantos carrinhos você precisa para o seu evento?</p>
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <label for="qtd-carrinhos"><strong>Carrinhos necessários:</strong></label>
-            <select id="qtd-carrinhos" onchange="atualizarQuantidadeCarrinhos()" style="padding: 8px; font-size: 1rem; border-radius: 5px;">
+                <div class="info-item">
+                    <strong>Capacidade média</strong>
+                    <span>O carrinho comporta em média 200 sorvetes.</span>
+                </div>
+
+                <div class="info-item">
+                    <strong>Refrigeração</strong>
+                    <span>Mantém a refrigeração por cerca de 6 horas, dependendo do uso.</span>
+                </div>
+
+                <div class="info-item">
+                    <strong>Entrega ou retirada</strong>
+                    <span>Entrega via Lalamove ou retirada na loja com carro espaçoso.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 1. SEÇÃO DE SABORES -->
+        <section id="secao-sabores">
+            <h2>1. Selecione os Sabores</h2>
+            <div id="lista-sorvetes" class="card-container">
+                <!-- Preenchido via JS -->
+            </div>
+        </section>
+
+        <!-- 2. SEÇÃO DO CALENDÁRIO -->
+        <section class="calendario-secao">
+            <h2>2. Escolha a Data do Evento</h2>
+            <p>As cores indicam a disponibilidade da nossa frota para o dia selecionado.</p>
+            
+            <div class="calendario-controle-mes">
+                <button id="btn-mes-anterior" class="btn-mes btn-mes-anterior" onclick="mudarMes(-1)">
+                    &#10094; Anterior
+                </button>
+
+                <h3 id="mes-ano-display">Mês Ano</h3>
+
+                <button id="btn-mes-proximo" class="btn-mes btn-mes-proximo" onclick="mudarMes(1)">
+                    Próximo &#10095;
+                </button>
+            </div>
+            
+            <div class="legenda">
+                <div class="legenda-item">
+                    <span class="ponto livre"></span> Livre
+                </div>
+                <div class="legenda-item">
+                    <span class="ponto alerta"></span> Poucas vagas
+                </div>
+                <div class="legenda-item">
+                    <span class="ponto esgotado"></span> Esgotado
+                </div>
+            </div>
+
+            <div id="calendar-grid" class="calendar-grid"></div>
+        </section>
+
+        <section id="secao-carrinhos" class="secao-carrinhos" style="display: none;">
+            <h2>3. Quantidade de Carrinhos</h2>
+            <p>Quantos carrinhos você precisa para o seu evento?</p>
+
+            <div class="carrinhos-controle">
+                <label for="qtd-carrinhos">Carrinhos necessários:</label>
+
+                <select id="qtd-carrinhos" onchange="atualizarQuantidadeCarrinhos()">
                 </select>
-            <span id="aviso-disponibilidade" style="color: #666; font-size: 0.9rem;"></span>
+
+                <span id="aviso-disponibilidade"></span>
+            </div>
+        </section>
+
+        <div class="finalizar-area">
+            <button id="btn-abrir-reserva" class="btn-finalizar" onclick="abrirModal()">
+                Revisar e finalizar reserva
+            </button>
+        </div>
+    </div>
+
+    <section id="duvidas-frequentes" class="faq-section">
+        <div class="section-header">
+            <span class="section-tag">Dúvidas frequentes</span>
+            <h2>Antes de finalizar sua reserva</h2>
+            <p>Veja as respostas para as principais dúvidas sobre o aluguel do carrinho.</p>
+        </div>
+
+        <div class="faq-lista">
+            <details>
+                <summary>Como funciona o aluguel?</summary>
+                <p>Você retira o carrinho em um dia e devolve no dia seguinte, dentro do nosso horário de funcionamento.</p>
+            </details>
+
+            <details>
+                <summary>Quantos sorvetes cabem no carrinho?</summary>
+                <p>O carrinho comporta em média 200 sorvetes.</p>
+            </details>
+
+            <details>
+                <summary>Quanto tempo dura a refrigeração do carrinho?</summary>
+                <p>A refrigeração dura em média 6 horas, podendo variar conforme a frequência de abertura do carrinho durante o evento.</p>
+            </details>
+
+            <details>
+                <summary>Vocês entregam?</summary>
+                <p>A entrega pode ser feita por uma empresa terceirizada, como a Lalamove, com frete calculado diretamente pela plataforma. Quem tiver um carro espaçoso também pode retirar o carrinho na loja e economizar o valor da entrega.</p>
+            </details>
+
+            <details>
+                <summary>Tem pedido mínimo de sorvetes?</summary>
+                <p>No momento, pelo site é necessário selecionar pelo menos 1 sorvete para enviar a solicitação. A quantidade total fica a critério do cliente e está sujeita à disponibilidade da loja.</p>
+            </details>
+
+            <details>
+                <summary>Há desconto ou preço de atacado para grandes quantidades?</summary>
+                <p>Não. Os sorvetes mantêm o mesmo valor unitário, independentemente da quantidade solicitada.</p>
+            </details>
         </div>
     </section>
 
-    <div style="text-align: center; margin-top: 30px;">
-        <button id="btn-abrir-reserva" class="btn-finalizar" onclick="abrirModal()">
-            🛒 Revisar e Finalizar Reserva
-        </button>
-    </div>
-</div>
+    <!-- MODAL DE FINALIZAÇÃO -->
+    <div id="modal-reserva" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModal()">&times;</span>
+            
+            <h2>Resumo do Pedido</h2>
+            <div id="resumo-pedido" class="nota-fiscal">
+                <p>Selecione sabores e uma data para ver o resumo.</p>
+            </div>
 
-<!-- MODAL DE FINALIZAÇÃO -->
-<div id="modal-reserva" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="fecharModal()">&times;</span>
-        
-        <h2>Resumo do Pedido</h2>
-        <div id="resumo-pedido" class="nota-fiscal">
-            <p>Selecione sabores e uma data para ver o resumo.</p>
+            <form id="form-contato" onsubmit="event.preventDefault(); finalizarPedido();">
+                <div class="input-group">
+                    <label for="cli-nome">Nome Completo*</label>
+                    <!-- Trava de 80 caracteres -->
+                    <input type="text" id="cli-nome" required maxlength="80" placeholder="Seu nome">
+                </div>
+
+                <div class="input-group">
+                    <label for="cli-tel">WhatsApp*</label>
+                    <!-- Trava de 15 caracteres para máscara -->
+                    <input type="text" id="cli-tel" required maxlength="15" onkeyup="mascaraTelefone(this)" placeholder="(00) 00000-0000">
+                </div>
+
+                <div class="input-group">
+                    <label for="cli-email">E-mail (Opcional)</label>
+                    <input type="email" id="cli-email" maxlength="100" placeholder="seu@email.com">
+                </div>
+
+                <div class="input-group">
+                    <label for="cli-end">Endereço de Entrega*</label>
+                    <input type="text" id="cli-end" required maxlength="200" placeholder="Rua, número e bairro do evento">
+                </div>
+
+                <div class="input-group">
+                    <label for="cli-obs">Observações/Dúvidas</label>
+                    <textarea id="cli-obs" rows="3" maxlength="400" placeholder="Ex: Horário de início..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-finalizar" style="background-color: #25d366;">
+                    🚀 Confirmar Reserva no WhatsApp
+                </button>
+            </form>
         </div>
-
-        <form id="form-contato" onsubmit="event.preventDefault(); finalizarPedido();">
-            <div class="input-group">
-                <label for="cli-nome">Nome Completo*</label>
-                <!-- Trava de 80 caracteres -->
-                <input type="text" id="cli-nome" required maxlength="80" placeholder="Seu nome">
-            </div>
-
-            <div class="input-group">
-                <label for="cli-tel">WhatsApp*</label>
-                <!-- Trava de 15 caracteres para máscara -->
-                <input type="text" id="cli-tel" required maxlength="15" onkeyup="mascaraTelefone(this)" placeholder="(00) 00000-0000">
-            </div>
-
-            <div class="input-group">
-                <label for="cli-email">E-mail (Opcional)</label>
-                <input type="email" id="cli-email" maxlength="100" placeholder="seu@email.com">
-            </div>
-
-            <div class="input-group">
-                <label for="cli-end">Endereço de Entrega*</label>
-                <input type="text" id="cli-end" required maxlength="200" placeholder="Rua, número e bairro do evento">
-            </div>
-
-            <div class="input-group">
-                <label for="cli-obs">Observações/Dúvidas</label>
-                <textarea id="cli-obs" rows="3" maxlength="400" placeholder="Ex: Horário de início..."></textarea>
-            </div>
-
-            <button type="submit" class="btn-finalizar" style="background-color: #25d366;">
-                🚀 Confirmar Reserva no WhatsApp
-            </button>
-        </form>
     </div>
-</div>
 
-<script src="{% static 'aluguel/js/main.js' %}"></script>
-<script>
-    function abrirModal() {
-        document.getElementById('modal-reserva').style.display = 'block';
-        document.body.style.overflow = 'hidden';
-    }
-    function fecharModal() {
-        document.getElementById('modal-reserva').style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-    window.onclick = function(event) {
-        if (event.target == document.getElementById('modal-reserva')) fecharModal();
-    }
+    <script src="{% static 'aluguel/js/main.js' %}"></script>
+    <script>
+        function abrirModal() {
+            document.getElementById('modal-reserva').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        function fecharModal() {
+            document.getElementById('modal-reserva').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('modal-reserva')) fecharModal();
+        }
 
-</script>
+    </script>
 
-    <div id="modal-contrato" class="modal" style="display: none; z-index: 1001;">
-        <div class="modal-content" style="max-width: 750px; width: 90%;">
-            <span class="close" onclick="fecharModalContrato()">&times;</span>
-            
-            <div style="text-align: center; margin-bottom: 15px;">
-                <h2 style="margin: 0; color: #e31837;">CONTRATO DE COMODATO DE CARRINHO DE SORVETES</h2>
-                <p style="font-size: 0.85rem; color: #555; margin: 5px 0 0 0;"><strong>OGGI SORVETES</strong> | Instrumento Particular de Parceria</p>
-            </div>
-            
+    <div id="modal-contrato" class="modal modal-contrato" style="display: none; z-index: 1001;">
+    <div class="modal-content contrato-content">
+        <span class="close" onclick="fecharModalContrato()">&times;</span>
+        
+        <div class="contrato-header">
+            <h2>Contrato de comodato de carrinho de sorvetes</h2>
+            <p><strong>Oggi Sorvetes</strong> | Instrumento particular de parceria</p>
+        </div>
+        
+        <div id="corpo-contrato-scroll" class="contrato-scroll">
             <div id="corpo-contrato-scroll" style="border: 1px solid #aaa; padding: 20px; height: 350px; overflow-y: scroll; background: #fff; font-size: 0.85rem; line-height: 1.5; text-align: justify; border-radius: 4px;">
                 
                 <strong>COMODANTE:</strong><br>
@@ -210,56 +289,73 @@
                 <p><strong>5 a 16 –</strong> [Demais cláusulas de conservação, devolução no prazo estipulado, multas por atraso e eleição do Foro da Comarca de Barueri/SP confirmadas no ato do envio].</p>
                 <p><strong>17. DA PROTEÇÃO DE DADOS (LGPD):</strong> Autorizo a COMODANTE a tratar os dados pessoais fornecidos para fins logísticos e de segurança (Lei nº 13.709/2018).</p>
             </div>
+        </div>
 
-            <div style="margin-top: 15px; background-color: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px dashed #ccc;">
-                <input type="checkbox" id="aceite-contrato" onchange="alternarBotaoFinalizar()" style="transform: scale(1.2); margin-right: 10px; cursor: pointer;">
-                <label for="aceite-contrato" style="cursor: pointer; font-weight: bold; font-size: 0.9rem;">
-                    Declaro que li, preenchi corretamente e aceito todos os termos do contrato de comodato acima, incluindo a responsabilidade pelo valor de R$ 2.500,00 por equipamento.
-                </label>
-            </div>
+        <div class="contrato-aceite">
+            <input type="checkbox" id="aceite-contrato" onchange="alternarBotaoFinalizar()">
+            <label for="aceite-contrato">
+                Declaro que li, preenchi corretamente e aceito todos os termos do contrato de comodato acima, incluindo a responsabilidade pelo valor de R$ 2.500,00 por equipamento.
+            </label>
+        </div>
 
-            <div style="display: flex; justify-content: space-between; gap: 10px; margin-top: 15px;">
-                <button type="button" class="btn-finalizar" style="background-color: #888; border: none; padding: 10px;" onclick="fecharModalContrato()">Voltar e Ajustar</button>
-                <button type="button" id="btn-enviar-reserva" class="btn-finalizar" style="background-color: #25d366; border: none; padding: 10px;" disabled onclick="enviarFormularioServidor()">
-                    🚀 Aceitar Contrato e Ir para o WhatsApp
-                </button>
-            </div>
+        <div class="contrato-acoes">
+            <button type="button" class="btn-finalizar btn-voltar" onclick="fecharModalContrato()">Voltar e ajustar</button>
+            <button type="button" id="btn-enviar-reserva" class="btn-finalizar btn-whatsapp-contrato" disabled onclick="enviarFormularioServidor()">
+                Aceitar contrato e ir para o WhatsApp
+            </button>
+        </div>
+    </div>
+</div>
+
+    <footer id="contato" class="footer-contato">
+    <div class="footer-conteudo">
+        <div class="footer-marca">
+            <img src="{% static 'img/logo-oggi.png' %}" alt="Oggi Sorvetes">
+            <p>Aluguel de carrinhos de sorvete para festas, empresas e eventos em Barueri e região.</p>
+            <p class="footer-destaque">Retirada na loja ou entrega via Lalamove.</p>
+        </div>
+
+        <div class="footer-coluna">
+            <h3>Contato</h3>
+
+            <a href="https://wa.me/551141990035" target="_blank" rel="noopener">
+                WhatsApp: (11) 4199-0035
+            </a>
+
+            <a href="https://www.instagram.com/oggi.Barueri" target="_blank" rel="noopener">
+                Instagram: @oggi.Barueri
+            </a>
+        </div>
+
+        <div class="footer-coluna">
+            <h3>Endereço</h3>
+            <p>
+                Av. Henriqueta Mendes Guerra, 1330<br>
+                Loja 16-H - Térreo<br>
+                Centro - Barueri/SP
+            </p>
+            <a href="https://www.google.com/maps/search/?api=1&query=Av.%20Henriqueta%20Mendes%20Guerra%201330%20Loja%2016-H%20Centro%20Barueri%20SP" target="_blank" rel="noopener">
+                Ver localização no Google Maps
+            </a>
+        </div>
+
+        <div class="footer-coluna">
+            <h3>Horário</h3>
+            <p>
+                Segunda a sábado<br>
+                das 09:00 às 20:00
+            </p>
+            <p>
+                Domingo e feriados<br>
+                das 11:00 às 17:00
+            </p>
         </div>
     </div>
 
-    <footer id="contato" class="footer-contato">
-        <div class="footer-conteudo">
-            <div class="footer-marca">
-                <img src="{% static 'img/logo-oggi.png' %}" alt="Oggi Sorvetes">
-                <p>Aluguel de carrinhos de sorvete para festas, empresas e eventos em Barueri e região.</p>
-                <p class="footer-destaque">Retirada na loja ou entrega via Lalamove.</p>
-            </div>
-
-            <div class="footer-coluna">
-                <h3>Contato</h3>
-                <a href="https://wa.me/551195603098" target="_blank" rel="noopener">WhatsApp: (11) 9560-3098</a>
-                <a href="https://www.instagram.com/" target="_blank" rel="noopener">Instagram</a>
-            </div>
-
-            <div class="footer-coluna">
-                <h3>Endereço</h3>
-                <p>Av. Henriqueta Mendes Guerra, 1330<br>Loja 16-H - Térreo<br>Centro - Barueri/SP</p>
-                <a href="https://www.google.com/maps/search/?api=1&query=Av.%20Henriqueta%20Mendes%20Guerra%201330%20Loja%2016-H%20Centro%20Barueri%20SP" target="_blank" rel="noopener">
-                    Ver localização no Google Maps
-                </a>
-            </div>
-
-            <div class="footer-coluna">
-                <h3>Horário</h3>
-                <p>Segunda a sexta<br>das 9h às 18h</p>
-                <p>Sábados e domingos<br>consulte disponibilidade</p>
-            </div>
-        </div>
-
-        <div class="footer-base">
-            <p>© 2026 Oggi Sorvetes Barueri. Todos os direitos reservados.</p>
-            <p>Hevon Comércio LTDA - CNPJ: 38.467.951/0001-48</p>
-        </div>
-    </footer>
+    <div class="footer-base">
+        <p>© 2026 Oggi Sorvetes Barueri. Todos os direitos reservados.</p>
+        <p>Hevon Comércio LTDA - CNPJ: 38.467.951/0001-48</p>
+    </div>
+</footer>
 </body>
 </html>

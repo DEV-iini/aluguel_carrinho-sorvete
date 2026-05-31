@@ -352,7 +352,11 @@ function atualizarSeletorCarrinhos(dataISO) {
 
     secao.style.display = 'block';
     select.innerHTML = '';
-    aviso.innerText = `(${disponiveisHoje} de ${totalCarrinhosGlobal} carrinhos livres para este dia)`;
+    if (disponiveisHoje === 1) {
+    aviso.innerText = '1 carrinho disponível para esta data';
+    } else {
+        aviso.innerText = `${disponiveisHoje} carrinhos disponíveis para esta data`;
+    }
 
     for (let i = 1; i <= disponiveisHoje; i++) {
         const opt = document.createElement('option');
@@ -396,22 +400,27 @@ function atualizarLabelMesAno(ano, mes) {
     const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
     document.getElementById('mes-ano-display').innerText = `${nomesMeses[mes - 1]} ${ano}`;
     
-    // Trava de Segurança: Bloqueia o botão "Anterior" se estiver no mês atual
     const hoje = new Date();
     const btnAnterior = document.getElementById('btn-mes-anterior');
     
     if (ano === hoje.getFullYear() && mes === hoje.getMonth() + 1) {
         btnAnterior.disabled = true;
-        btnAnterior.style.opacity = '0.4';
-        btnAnterior.style.cursor = 'not-allowed';
     } else {
         btnAnterior.disabled = false;
-        btnAnterior.style.opacity = '1';
-        btnAnterior.style.cursor = 'pointer';
     }
 }
 
-// Ativa e desativa o menu mobile
-document.querySelector('.menu-toggle').addEventListener('click', () => {
-    document.querySelector('.menu-links').classList.toggle('ativo');
-});
+const menuToggle = document.querySelector('.menu-toggle');
+const menuLinks = document.querySelector('.menu-links');
+
+if (menuToggle && menuLinks) {
+    menuToggle.addEventListener('click', () => {
+        menuLinks.classList.toggle('ativo');
+    });
+
+    document.querySelectorAll('.menu-links a').forEach(link => {
+        link.addEventListener('click', () => {
+            menuLinks.classList.remove('ativo');
+        });
+    });
+}
