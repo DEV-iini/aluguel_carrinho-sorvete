@@ -49,8 +49,7 @@ body {
     scroll-margin-top: 95px;
 }
 
-#lista-sorvetes,
-#calendar-grid {
+#lista-sorvetes {
     scroll-margin-top: 130px;
 }
 
@@ -523,21 +522,6 @@ body {
     margin-top: 14px;
 }
 
-.btn-qty {
-    width: 34px;
-    height: 34px;
-    border: none;
-    border-radius: 10px;
-    color: white;
-    font-size: 18px;
-    font-weight: 800;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform .15s ease, background-color .2s ease;
-}
-
 .btn-qty:hover {
     transform: scale(1.06);
 }
@@ -573,13 +557,6 @@ body {
 /* ==========================================================================
    CONTROLE DE QUANTIDADE
    ========================================================================== */
-.qty-control {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 15px;
-}
 
 .btn-qty {
     width: 35px;
@@ -601,16 +578,6 @@ body {
 
 .btn-mais {
     background-color: var(--oggi-info);
-}
-
-.input-qty {
-    width: 45px;
-    height: 35px;
-    text-align: center;
-    border: 1px solid var(--oggi-borda);
-    border-radius: 6px;
-    font-size: 16px;
-    padding: 0 5px;
 }
 
 /* ==========================================================================
@@ -734,19 +701,19 @@ body {
     box-shadow: 0 8px 18px rgba(159, 48, 129, 0.14);
 }
 
-.livre {
+.dia-calendario.livre {
     background-color: #e8f8f2 !important;
     color: #257452;
     border: 1px solid #bdebd8;
 }
 
-.alerta {
+.dia-calendario.alerta {
     background-color: #fff4d8 !important;
     color: #8a6200;
     border: 1px solid #f4d37a;
 }
 
-.esgotado {
+.dia-calendario.esgotado {
     background-color: #ffe8ee !important;
     color: #a8264c;
     opacity: 0.65;
@@ -754,12 +721,24 @@ body {
     border: 1px solid #f2b6c8;
 }
 
-.selecionado {
+.dia-calendario.selecionado {
     border: 2px solid var(--oggi-rosa) !important;
     background-color: var(--oggi-rosa) !important;
     color: #fff !important;
     box-shadow: 0 0 0 4px rgba(230, 40, 102, 0.18);
     transform: scale(1.04);
+}
+
+.dia-semana-calendario {
+    font-weight: 800;
+    text-align: center;
+    padding-bottom: 10px;
+    color: #555;
+    font-size: 13px;
+}
+
+.dia-vazio-calendario {
+    min-height: 46px;
 }
 
 .legenda {
