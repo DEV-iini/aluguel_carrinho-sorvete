@@ -1,0 +1,412 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Oggi Admin — Gestão de Reservas</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="{% static 'aluguel/css/painel.css' %}">
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">🍦</div>
+    <div class="login-title">Oggi Admin</div>
+    <div class="login-sub">Acesso restrito — somente administradores</div>
+    <div class="login-field">
+      <label>Usuário</label>
+      <input type="text" id="loginUser" placeholder="admin" autocomplete="username"/>
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <button class="login-btn" onclick="tentarLogin()">Entrar no Painel</button>
+    <div class="login-error" id="loginError">Usuário ou senha incorretos.</div>
+    <div class="login-lock">🔒 Área protegida — acesso não autorizado é registrado</div>
+  </div>
+</div>
+
+<!-- Mobile top bar -->
+<div class="mobile-top-bar">
+  <button class="burger-btn" id="sidebarToggle" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <span style="font-family:'Syne',sans-serif;font-weight:800;color:white;font-size:16px">🍦 Oggi Admin</span>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ══ SIDEBAR ═══════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span>🍦</span>
+    <div>
+      <div class="sidebar-logo-text">Oggi</div>
+      <div class="sidebar-logo-sub">Painel Admin</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="nav-item active" onclick="setView('calendario',this)">
+      <span class="nav-icon">📅</span> Calendário
+    </button>
+    <button class="nav-item" onclick="setView('reservas',this)">
+      <span class="nav-icon">📋</span> Reservas
+    </button>
+    <button class="nav-item" onclick="setView('clientes',this)">
+      <span class="nav-icon">👥</span> Clientes
+    </button>
+    <button class="nav-item" onclick="setView('sabores',this)">
+      <span class="nav-icon">🍨</span> Sabores
+    </button>
+    <button class="nav-item" onclick="setView('carrinhos',this)">
+      <span class="nav-icon">🛒</span> Carrinhos
+    </button>
+    <hr style="border:none;border-top:1px solid rgba(255,255,255,.08);margin:8px 0"/>
+    <a href="/" class="nav-item" target="_blank">
+      <span class="nav-icon">🌐</span> Ver Site
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="logout()">
+      <span>🚪</span> Sair
+    </button>
+  </div>
+</aside>
+
+<!-- ══ MAIN CONTENT ══════════════════════════════════ -->
+<div class="main-content">
+  <div class="top-bar">
+    <h1 id="pageTitle">📅 Calendário de Reservas</h1>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;" id="topBarActions">
+      <button class="btn btn-outline btn-sm" onclick="recarregarPainel()">
+        🔄 Atualizar
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modalReserva')">
+        + Nova Reserva
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- MÉTRICAS -->
+    <div class="metrics-grid">
+      <div class="metric-card pending">
+        <div class="metric-icon">⏳</div>
+        <div class="metric-value" id="metPendentes">—</div>
+        <div class="metric-label">Pendentes</div>
+        <div class="metric-delta neutral" id="metPendDelta"></div>
+      </div>
+      <div class="metric-card confirmed">
+        <div class="metric-icon">✅</div>
+        <div class="metric-value" id="metConfirmadas">—</div>
+        <div class="metric-label">Confirmadas</div>
+      </div>
+      <div class="metric-card total">
+        <div class="metric-icon">📊</div>
+        <div class="metric-value" id="metTotal">—</div>
+        <div class="metric-label">Total no Mês</div>
+      </div>
+      <div class="metric-card carts">
+        <div class="metric-icon">🛒</div>
+        <div class="metric-value" id="metCarrinhos">3</div>
+        <div class="metric-label">Carrinhos Disponíveis</div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: CALENDÁRIO ═══ -->
+    <div id="view-calendario" class="view-section active">
+      <div class="max-info">
+        <span>⚠️</span>
+        <span>Máximo de <strong>3 reservas por dia</strong> (1 por carrinho). Dias cheios ficam bloqueados automaticamente para os usuários.</span>
+      </div>
+      <div style="height:12px"></div>
+      <div class="admin-layout">
+        <div class="calendar-card">
+          <div class="cal-header">
+            <button class="cal-nav-btn" id="prevMonth">‹</button>
+            <h2 id="calTitle">—</h2>
+            <button class="cal-nav-btn" id="nextMonth">›</button>
+          </div>
+          <div class="cal-weekdays">
+            <span>Dom</span><span>Seg</span><span>Ter</span>
+            <span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+          </div>
+          <div class="cal-body" id="calBody">
+            <div style="grid-column:1/-1;text-align:center;padding:32px"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <div class="admin-sidebar">
+          <!-- Legenda capacidade -->
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">Capacidade Diária</span></div>
+            <div class="panel-body" style="gap:10px">
+              <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600">
+                <span class="day-capacity ok">1–2</span> Disponível
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600">
+                <span class="day-capacity warn">2/3</span> Quase cheio
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600">
+                <span class="day-capacity full">3/3</span> Lotado
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600">
+                <div style="width:20px;height:12px;border-radius:3px;background:repeating-linear-gradient(45deg,#eee,#eee 3px,#ddd 3px,#ddd 6px)"></div>
+                Bloqueado pelo admin
+              </div>
+            </div>
+          </div>
+
+          <!-- Próximas reservas pendentes -->
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">⏳ Aguardando Confirmação</span>
+              <span style="font-size:11px;color:var(--mid);font-weight:600" id="pendentesCount">0</span>
+            </div>
+            <div class="panel-body" id="pendentesList" style="max-height:400px;overflow-y:auto">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: RESERVAS ═══ -->
+    <div id="view-reservas" class="view-section">
+      <div class="reservas-table-wrap">
+        <div class="reservas-table-header">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+  <h2 style="margin:0;">📋 Todas as Reservas</h2>
+
+  <input
+    type="text"
+    id="buscaReserva"
+    class="form-control"
+    placeholder="Buscar cliente..."
+    style="width:220px;padding:8px 12px;font-size:13px;"
+    oninput="renderReservasTabela()"
+  >
+</div>
+          <div class="filter-tabs" id="reservasTabs">
+            <button class="filter-tab active" onclick="filtrarReservas('todas',this)">Todas</button>
+            <button class="filter-tab" onclick="filtrarReservas('pendente',this)">Pendentes</button>
+            <button class="filter-tab" onclick="filtrarReservas('confirmada',this)">Confirmadas</button>
+            <button class="filter-tab" onclick="filtrarReservas('cancelada',this)">Canceladas</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Data</th>
+                <th>Carrinho</th>
+                <th>Sabores</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="reservasTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-clientes" class="view-section">
+  <div class="reservas-table-header">
+  <h2>👥 Clientes <span id="clientesTotal" style="font-size:13px;color:var(--mid);font-weight:700;">0 cadastrados</span></h2>
+
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <input
+      type="text"
+      id="clientesBusca"
+      class="form-control"
+      placeholder="Pesquisar cliente..."
+      style="width:220px;padding:8px 12px;font-size:13px;"
+      oninput="renderClientesTabela()"
+    >
+
+    <select
+      id="clientesOrdem"
+      class="form-control"
+      style="width:160px;padding:8px 12px;font-size:13px;"
+      onchange="renderClientesTabela()"
+    >
+      <option value="id">Ordenar por ID</option>
+      <option value="nome">Ordenar por nome</option>
+      <option value="telefone">Ordenar por telefone</option>
+    </select>
+
+    <button class="btn btn-primary btn-sm" onclick="openModal('modalCliente')">
+      + Novo Cliente
+    </button>
+  </div>
+</div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>ID Cliente</th>
+            <th>Nome</th>
+            <th>Telefone</th>
+            <th>Email</th>
+            <th>Endereço</th>
+          </tr>
+        </thead>
+
+        <tbody id="clientesTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+    <!-- ═══ VIEW: SABORES ═══ -->
+    <div id="view-sabores" class="view-section">
+      <div class="sabores-section">
+        <div class="sabores-header">
+          <h2>🍨 Disponibilidade de Sabores</h2>
+        </div>
+        <div class="sabores-controls">
+          <label>Gerenciar disponibilidade para:</label>
+          <input type="date" id="saborDataFiltro" onchange="renderSaboresAdmin()"/>
+          <span style="font-size:12px;color:var(--mid)">— ative/desative sabores para a data selecionada</span>
+        </div>
+        <div class="sabores-grid-admin" id="saboresAdminGrid"></div>
+      </div>
+    </div>
+
+    <!-- ═══ VIEW: CARRINHOS ═══ -->
+    <div id="view-carrinhos" class="view-section">
+      <div class="carrinhos-section">
+        <div class="carrinhos-header">
+          <h2>🛒 Carrinhos</h2>
+          <p>Temos <strong>3 carrinhos</strong> disponíveis. O máximo de reservas por dia é <strong>3</strong> (um por carrinho).</p>
+        </div>
+        <div class="carrinhos-list" id="carrinhosList"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main-content -->
+
+<!-- ══ MODAL: NOVA RESERVA ══════════════════════════ -->
+<div class="overlay" id="modalReserva">
+  <div class="modal">
+    <div class="modal-title">🍦 Nova Reserva</div>
+    <div class="form-group">
+      <label class="form-label">Data *</label>
+      <input type="date" class="form-control" id="fData"/>
+      <span style="font-size:12px;color:var(--mid);margin-top:4px" id="fDataAviso"></span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Carrinho *</label>
+      <select class="form-control" id="fCarrinho"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome do Cliente *</label>
+      <input type="text" class="form-control" id="fNome" placeholder="Ex: Maria Silva"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input type="email" class="form-control" id="fEmail" placeholder="email@exemplo.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Telefone</label>
+        <input type="tel" class="form-control" id="fTelefone" placeholder="(11) 99999-9999"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Sabores Solicitados</label>
+      <input type="text" class="form-control" id="fSabores" placeholder="Ex: Chocolate, Morango, Baunilha"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observações</label>
+      <textarea class="form-control" id="fObs" placeholder="Informações adicionais..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalReserva')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarReserva()">💾 Salvar Reserva</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: BLOQUEAR DATA ══════════════════════════ -->
+<div class="overlay" id="modalBloqueio">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">🔒 Bloquear Data</div>
+    <div class="form-group">
+      <label class="form-label">Data *</label>
+      <input type="date" class="form-control" id="bData"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Motivo</label>
+      <input type="text" class="form-control" id="bMotivo" placeholder="Ex: Feriado, manutenção..."/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalBloqueio')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarBloqueio()">🔒 Confirmar Bloqueio</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: DETALHE DA RESERVA ══════════════════════ -->
+<div class="overlay" id="modalDetalhe">
+  <div class="modal">
+    <div class="modal-title">📋 Detalhes da Reserva</div>
+    <div id="detalheBody"></div>
+    <div class="modal-footer" id="detalheBotoes"></div>
+  </div>
+</div>
+
+<!-- ══ MODAL: NOVO CLIENTE ═════════════ -->
+<div class="overlay" id="modalCliente">
+  <div class="modal">
+
+    <div class="modal-title">👥 Novo Cliente</div>
+
+    <div class="form-group">
+      <label class="form-label">Nome *</label>
+      <input type="text" class="form-control" id="cNome">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Telefone</label>
+      <input type="text" class="form-control" id="cTelefone">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" class="form-control" id="cEmail">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Endereço</label>
+      <input type="text" class="form-control" id="cEndereco">
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline"
+              onclick="closeModal('modalCliente')">
+        Cancelar
+      </button>
+
+      <button class="btn btn-primary"
+              onclick="salvarCliente()">
+        💾 Salvar Cliente
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+<script src="{% static 'aluguel/js/painel.js' %}"></script>
+</body>
+</html>

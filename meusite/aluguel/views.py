@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from .models import Carrinho, Reserva # Aqui você importa as suas tabelas reais!
+from .models import Carrinho, Reserva
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 def index(request):
     return render(request, 'aluguel/index.html')
@@ -29,3 +30,7 @@ def api_disponibilidade(request):
     }
     
     return JsonResponse(dados)
+
+@ensure_csrf_cookie
+def painel(request):
+    return render(request, 'aluguel/painel.html')

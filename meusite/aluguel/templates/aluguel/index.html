@@ -69,12 +69,12 @@
             <div class="info-rapida">
                 <div class="info-item">
                     <strong>Retirada e devolução</strong>
-                    <span>Retire em um dia e devolva no outro, dentro do nosso horário de funcionamento.</span>
+                    <span>Retire no dia combinado e devolva no dia seguinte, dentro do nosso horário de funcionamento.</span>
                 </div>
 
                 <div class="info-item">
                     <strong>Capacidade média</strong>
-                    <span>O carrinho comporta em média 200 sorvetes.</span>
+                    <span>O carrinho comporta aproximadamente 200 sorvetes.</span>
                 </div>
 
                 <div class="info-item">
@@ -84,7 +84,7 @@
 
                 <div class="info-item">
                     <strong>Entrega ou retirada</strong>
-                    <span>Entrega via Lalamove ou retirada na loja com carro espaçoso.</span>
+                    <span>Entrega via transportadora ou retirada na loja com carro espaçoso.</span>
                 </div>
             </div>
         </section>
@@ -114,7 +114,11 @@
                 </button>
             </div>
             
+            
             <div class="legenda">
+                <div class="legenda-item">
+                    <span class="ponto passado"></span> Data passada
+                </div>
                 <div class="legenda-item">
                     <span class="ponto livre"></span> Livre
                 </div>
@@ -160,90 +164,108 @@
         <div class="faq-lista">
             <details>
                 <summary>Como funciona o aluguel?</summary>
-                <p>Você retira o carrinho em um dia e devolve no dia seguinte, dentro do nosso horário de funcionamento.</p>
+                <p>A retirada do carrinho é feita no dia solicitado e a devolução deve ocorrer no dia seguinte, sempre dentro do horário de funcionamento da loja.</p>
             </details>
 
             <details>
                 <summary>Existe multa por atraso na devolução?</summary>
-                <p>Sim. A devolução deve ser feita no dia combinado e dentro do horário de funcionamento da loja. Em caso de atraso, será cobrada multa de R$ 50,00.</p>
+                <p>Sim. Caso o carrinho seja devolvido fora do prazo combinado, será cobrada multa de R$ 50,00 por dia atrasado.</p>
             </details>
 
             <details>
                 <summary>Quantos sorvetes cabem no carrinho?</summary>
-                <p>O carrinho comporta em média 200 sorvetes.</p>
+                <p>O carrinho comporta aproximadamente 200 sorvetes. A capacidade pode variar conforme a organização dos produtos, marcas e quantidade escolhida pois cada marca tem um tamanho variado de picolé.</p>
             </details>
 
             <details>
-                <summary>Quanto tempo dura a refrigeração do carrinho?</summary>
-                <p>A refrigeração dura em média 6 horas, podendo variar conforme a frequência de abertura do carrinho durante o evento.</p>
+                <summary>Quanto tempo dura a refrigeração?</summary>
+                <p>A refrigeração dura em média 6 horas, podendo variar conforme a frequência de abertura do carrinho durante o evento ou caso esqueçam destampado.</p>
             </details>
 
             <details>
                 <summary>Vocês entregam?</summary>
-                <p>A entrega pode ser feita por uma empresa terceirizada, como a Lalamove, com frete calculado diretamente pela plataforma. Quem tiver um carro espaçoso também pode retirar o carrinho na loja e economizar o valor da entrega.</p>
+                <p>A entrega pode ser feita por uma transportadora terceirizada, com frete calculado separadamente. Também é possível retirar na loja com um carro espaçoso.</p>
             </details>
 
             <details>
                 <summary>Tem pedido mínimo de sorvetes?</summary>
-                <p>No momento, pelo site é necessário selecionar pelo menos 1 sorvete para enviar a solicitação. A quantidade total fica a critério do cliente e está sujeita à disponibilidade da loja.</p>
+                <p>Pelo site, é necessário selecionar pelo menos 1 sorvete para enviar a solicitação. A quantidade total fica a critério do cliente e está sujeita à disponibilidade da loja.</p>
             </details>
 
             <details>
-                <summary>Há desconto ou preço de atacado para grandes quantidades?</summary>
+                <summary>Há desconto ou preço de atacado?</summary>
                 <p>Não. Os sorvetes mantêm o mesmo valor unitário, independentemente da quantidade solicitada.</p>
+            </details>
+
+            <details>
+                <summary>Quais formas de pagamento são aceitas?</summary>
+                <p>O pagamento pode ser feito via Pix presencialmente ou pelo WhatsApp. Na loja, também aceitamos débito, crédito e dinheiro.</p>
             </details>
         </div>
     </section>
 
     <!-- MODAL DE FINALIZAÇÃO -->
     <div id="modal-reserva" class="modal">
-        <div class="modal-content modal-reserva-content">
+        <div class="modal-content">
             <span class="close" onclick="fecharModal()">&times;</span>
-
+            
             <div class="modal-scroll-area">
                 <h2>Resumo do Pedido</h2>
-
                 <div id="resumo-pedido" class="nota-fiscal">
                     <p>Selecione sabores e uma data para ver o resumo.</p>
                 </div>
 
                 <form id="form-contato" onsubmit="event.preventDefault(); finalizarPedido();">
-                <div class="input-group">
-                    <label for="cli-nome">Nome Completo*</label>
-                    <!-- Trava de 80 caracteres -->
-                    <input type="text" id="cli-nome" required maxlength="80" placeholder="Seu nome">
-                </div>
+                    <div class="input-group">
+                        <label for="cli-nome">Nome Completo*</label>
+                        <!-- Trava de 80 caracteres -->
+                        <input type="text" id="cli-nome" required maxlength="80" placeholder="Seu nome">
+                    </div>
 
-                <div class="input-group">
-                    <label for="cli-tel">WhatsApp*</label>
-                    <!-- Trava de 15 caracteres para máscara -->
-                    <input type="text" id="cli-tel" required maxlength="15" onkeyup="mascaraTelefone(this)" placeholder="(00) 00000-0000">
-                </div>
+                    <div class="input-group">
+                        <label for="cli-tel">WhatsApp*</label>
+                        <!-- Trava de 15 caracteres para máscara -->
+                        <input type="text" id="cli-tel" required maxlength="15" onkeyup="mascaraTelefone(this)" placeholder="(00) 00000-0000">
+                    </div>
 
-                <div class="input-group">
-                    <label for="cli-email">E-mail (Opcional)</label>
-                    <input type="email" id="cli-email" maxlength="100" placeholder="seu@email.com">
-                </div>
+                    <div class="input-group">
+                        <label for="cli-email">E-mail (Opcional)</label>
+                        <input type="email" id="cli-email" maxlength="100" placeholder="seu@email.com">
+                    </div>
 
-                <div class="input-group">
-                    <label for="cli-end">Endereço de Entrega*</label>
-                    <input type="text" id="cli-end" required maxlength="200" placeholder="Rua, número e bairro do evento">
-                </div>
+                    <div class="input-group">
+                        <label for="cli-end">Endereço de Entrega*</label>
+                        <input type="text" id="cli-end" required maxlength="200" placeholder="Rua, número e bairro do evento">
+                    </div>
 
-                <div class="input-group">
-                    <label for="cli-obs">Observações/Dúvidas</label>
-                    <textarea id="cli-obs" rows="3" maxlength="400" placeholder="Ex: Horário de início..."></textarea>
-                </div>
+                    <div class="input-group">
+                        <label for="cli-obs">Observações/Dúvidas</label>
+                        <textarea id="cli-obs" rows="3" maxlength="400" placeholder="Ex: Horário de início..."></textarea>
+                    </div>
 
-                <button type="submit" class="btn-finalizar" style="background-color: #25d366;">
-                    🚀 Confirmar Reserva no WhatsApp
-                </button>
-            </form>
-        </div>
-    </div>
+                    <button type="submit" class="btn-finalizar" style="background-color: #25d366;">
+                        🚀 Confirmar Reserva no WhatsApp
+                    </button>
+                </form>
+            </div>
+            </div>
     </div>
 
     <script src="{% static 'aluguel/js/main.js' %}"></script>
+    <script>
+        function abrirModal() {
+            document.getElementById('modal-reserva').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        function fecharModal() {
+            document.getElementById('modal-reserva').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('modal-reserva')) fecharModal();
+        }
+
+    </script>
 
     <div id="modal-contrato" class="modal modal-contrato" style="display: none; z-index: 1001;">
     <div class="modal-content contrato-content">
@@ -254,8 +276,8 @@
             <p><strong>Oggi Sorvetes</strong> | Instrumento particular de parceria</p>
         </div>
         
-        <div id="corpo-contrato-scroll" class="contrato-scroll">
-            <div id="corpo-contrato-scroll" style="border: 1px solid #aaa; padding: 20px; height: 350px; overflow-y: scroll; background: #fff; font-size: 0.85rem; line-height: 1.5; text-align: justify; border-radius: 4px;">
+        <div class="contrato-scroll">
+            <div id="corpo-contrato-scroll" class="contrato-scroll" style="border: 1px solid #aaa; padding: 20px; height: 350px; overflow-y: scroll; background: #fff; font-size: 0.85rem; line-height: 1.5; text-align: justify; border-radius: 4px;">
                 
                 <strong>COMODANTE:</strong><br>
                 Razão Social: Hevon Comercio LTDA<br>
@@ -280,13 +302,13 @@
                 <p><strong>2 –</strong> O Equipamento destina-se ao armazenamento dos Sorvetes Oggi, não podendo ser utilizado para fins comerciais de terceiros.</p>
                 <p><strong>3 –</strong> É vedado o armazenamento de quaisquer outros produtos no Equipamento.</p>
                 <p><strong>4 –</strong> Não é permitida a transferência do Equipamento para outro local sem autorização prévia da COMODANTE.</p>
-                <p><strong>5 – DEVOLUÇÃO E ATRASO:</strong> O equipamento deverá ser devolvido na data combinada e dentro do horário de funcionamento da COMODANTE. Em caso de atraso na devolução, será cobrada multa de R$ 50,00 (cinquenta reais), sem prejuízo de eventuais perdas e danos.</p>
+                <p><strong>5 a 16 –</strong> [Demais cláusulas de conservação, devolução no prazo estipulado, multas por atraso e eleição do Foro da Comarca de Barueri/SP confirmadas no ato do envio].</p>
                 <p><strong>17. DA PROTEÇÃO DE DADOS (LGPD):</strong> Autorizo a COMODANTE a tratar os dados pessoais fornecidos para fins logísticos e de segurança (Lei nº 13.709/2018).</p>
             </div>
         </div>
 
         <div class="contrato-aceite">
-            <input type="checkbox" id="aceite-contrato" onchange="alternarBotaoFinalizar()">
+            <input type="checkbox" id="aceite-contrato" disabled onchange="alternarBotaoFinalizar()">
             <label for="aceite-contrato">
                 Declaro que li, preenchi corretamente e aceito todos os termos do contrato de comodato acima, incluindo a responsabilidade pelo valor de R$ 2.500,00 por equipamento.
             </label>
@@ -306,7 +328,7 @@
         <div class="footer-marca">
             <img src="{% static 'img/logo-oggi.png' %}" alt="Oggi Sorvetes">
             <p>Aluguel de carrinhos de sorvete para festas, empresas e eventos em Barueri e região.</p>
-            <p class="footer-destaque">Retirada na loja ou entrega via Lalamove.</p>
+            <p class="footer-destaque">Retirada na loja ou entrega via transportadora.</p>
         </div>
 
         <div class="footer-coluna">
@@ -328,7 +350,7 @@
                 Loja 16-H - Térreo<br>
                 Centro - Barueri/SP
             </p>
-            <a href="https://www.google.com/maps/search/?api=1&query=Av.%20Henriqueta%20Mendes%20Guerra%201330%20Loja%2016-H%20Centro%20Barueri%20SP" target="_blank" rel="noopener">
+            <a href="https://maps.app.goo.gl/yHEGb7FcRJR7RvvLA" target="_blank" rel="noopener">
                 Ver localização no Google Maps
             </a>
         </div>
