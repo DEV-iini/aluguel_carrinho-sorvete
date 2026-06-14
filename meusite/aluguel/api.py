@@ -1,4 +1,5 @@
 import json
+import re
 from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from django.db import transaction
@@ -30,18 +31,17 @@ def api_disponibilidade(request):
         ano, mes = map(int, mes_ref.split('-'))
         total_carrinhos = Carrinho.objects.filter(status=True).count()
 
-        contagem = (
-            Reserva.objects.filter(data_evento__year=ano, data_evento__month=mes)
-            .exclude(status='cancelado')
-            .values('data_evento')
-            .annotate(total=Count('id'))
+        reservas = (
+            Reserva.objects
+            .filter(data_evento__year=ano, data_evento__month=mes)
+            .filter(status='confirmado')
         )
 
-        # Criamos um dicionário: {"2026-05-15": 2, "2026-05-16": 1}
-        dados_ocupacao = {
-            item['data_evento'].strftime('%Y-%m-%d'): item['total'] 
-            for item in contagem
-        }
+        dados_ocupacao = {}
+
+        for reserva in reservas:
+            chave = reserva.data_evento.strftime('%Y-%m-%d')
+            dados_ocupacao[chave] = dados_ocupacao.get(chave, 0) + quantidade_carrinhos_reserva(reserva)
 
         return JsonResponse({
             "total_carrinhos": total_carrinhos,
@@ -52,53 +52,48 @@ def api_disponibilidade(request):
     
 # --- API DE CRIAR RESERVA ---
 @csrf_exempt
+@transaction.atomic
 def api_criar_reserva(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            
-            # 1. Cria o Cliente (Email opcional tratado)
+
             email_input = data.get('email')
+            quantidade_carrinhos = max(1, int(data.get('quantidade_carrinhos') or 1))
+
             cliente = Cliente.objects.create(
                 nome_cliente=data.get('nome'),
                 telefone=data.get('telefone'),
                 endereco=data.get('endereco'),
-                # Garante que string vazia vire NULL no banco
                 email=email_input if email_input and email_input.strip() else None
             )
 
-            # 2. PARTE 1: Criar a "Casca" da Reserva (Sem itens ainda)
-            # Definimos valor_pedido=0 para o save() do model não tentar 
-            # calcular o total_pedido() antes de termos o ID.
-            reserva = Reserva(
+            observacao = data.get('descricao') or ''
+
+            if quantidade_carrinhos > 1:
+                observacao = (
+                    f"{observacao}\n"
+                    f"Quantidade de carrinhos solicitada: {quantidade_carrinhos}"
+                ).strip()
+
+            reserva = Reserva.objects.create(
                 id_cliente=cliente,
                 data_evento=data.get('data'),
-                descricao=data.get('descricao'), # Nova observação do cliente
+                descricao=observacao,
                 status='pendente',
-                valor_pedido=0 
+                valor_pedido=0
             )
-            reserva.save() # Aqui a reserva ganha a Primary Key (ID)
 
-            # 3. PARTE 2: Vincular os Itens (Agora com a PK da reserva)
-            sabores_selecionados = data.get('sabores', [])
-            for item in sabores_selecionados:
-                # Busca o sorvete pelo ID enviado pelo JS
+            for item in data.get('sabores', []):
                 sorvete = Sorvete.objects.get(id=item['id'])
-                
                 ReservaProduto.objects.create(
                     id_reserva=reserva,
                     id_sorvete=sorvete,
                     quantidade_escolhida=item['qtd']
                 )
 
-            # 4. PARTE 3: Atualização do Valor Final
-            # Agora que os itens existem, podemos pegar o total que veio do JS
-            # ou forçar o Python a recalcular usando os itens que acabamos de criar.
-            reserva.valor_pedido = data.get('total_valor', 0)
-            reserva.save() # Salva novamente com o valor correto e itens vinculados
-
             return JsonResponse({
-                'status': 'sucesso', 
+                'status': 'sucesso',
                 'whatsapp_url': reserva.gerar_link_whatsapp()
             }, status=201)
 
@@ -106,7 +101,7 @@ def api_criar_reserva(request):
             return JsonResponse({'status': 'erro', 'message': 'Um dos sabores selecionados não foi encontrado.'}, status=400)
         except Exception as e:
             return JsonResponse({'status': 'erro', 'message': str(e)}, status=400)
-    
+
     return JsonResponse({'status': 'erro', 'message': 'Método não permitido'}, status=405)
 
 def api_auth_login(request):
@@ -151,6 +146,15 @@ def api_auth_check(request):
 def _admin_required(request):
     return request.user.is_authenticated and request.user.is_staff
 
+def quantidade_carrinhos_reserva(reserva):
+    texto = reserva.descricao or ''
+    match = re.search(r'Quantidade de carrinhos(?: solicitada)?:\s*(\d+)', texto, re.IGNORECASE)
+
+    if match:
+        return max(1, int(match.group(1)))
+
+    return 1
+
 
 def serializar_reserva(reserva):
     itens = reserva.itens.select_related('id_sorvete').all()
@@ -160,6 +164,12 @@ def serializar_reserva(reserva):
         for item in itens
         if item.id_sorvete
     )
+
+    qtd_carrinhos = quantidade_carrinhos_reserva(reserva)
+    subtotal = Decimal(str(reserva.subtotal_sorvetes()))
+    taxa_unitaria = Decimal(str(reserva.taxa_aluguel()))
+    valor_carrinhos = taxa_unitaria * qtd_carrinhos
+    total = subtotal + valor_carrinhos
 
     return {
         'id': reserva.id,
@@ -171,13 +181,18 @@ def serializar_reserva(reserva):
         'cliente_email': reserva.id_cliente.email or '',
         'cliente_endereco': reserva.id_cliente.endereco,
         'carrinho_id': reserva.id_carrinho.id if reserva.id_carrinho else None,
-        'carrinho_nome': f"Carrinho {reserva.id_carrinho.id}" if reserva.id_carrinho else 'Não definido',
+        'quantidade_carrinhos': qtd_carrinhos,
+        'carrinho_nome': (
+            f"{qtd_carrinhos} carrinho" if qtd_carrinhos == 1
+            else f"{qtd_carrinhos} carrinhos"
+        ),
         'sabores': sabores_txt or 'Não informado',
         'observacoes': reserva.descricao or '',
-        'subtotal': str(reserva.subtotal_sorvetes()),
-        'taxa_aluguel': str(reserva.taxa_aluguel()),
-        'total': str(reserva.total_pedido()),
-    }
+        'subtotal': str(subtotal),
+        'taxa_aluguel': str(valor_carrinhos),
+        'valor_carrinhos': str(valor_carrinhos),
+        'total': str(total),
+        }
 
 
 def api_reservas(request):
@@ -322,3 +337,79 @@ def api_carrinhos(request):
         'preco_diaria': str(c.preco_diaria),
         'status': c.status,
     } for c in carrinhos], safe=False)
+
+def serializar_sorvete_admin(sorvete):
+    return {
+        'id': sorvete.id,
+        'nome': sorvete.nome_sorvete,
+        'preco': str(sorvete.preco),
+        'quantidade': getattr(sorvete, 'quantidade', 0),
+        'ativo': sorvete.ativo,
+        'imagem_url': sorvete.imagem.url if sorvete.imagem else '',
+    }
+
+
+def api_admin_sabores(request):
+    if not _admin_required(request):
+        return JsonResponse({'erro': 'Não autorizado.'}, status=401)
+
+    if request.method == 'GET':
+        sabores = Sorvete.objects.all().order_by('nome_sorvete')
+        return JsonResponse([serializar_sorvete_admin(s) for s in sabores], safe=False)
+
+    if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
+        preco = request.POST.get('preco', '0')
+        ativo = request.POST.get('ativo') == 'true'
+
+        if not nome:
+            return JsonResponse({'erro': 'Informe o nome do sabor.'}, status=400)
+
+        sorvete = Sorvete(
+            nome_sorvete=nome,
+            preco=Decimal(str(preco).replace(',', '.')),
+            ativo=ativo
+        )
+
+        if hasattr(sorvete, 'quantidade'):
+            sorvete.quantidade = int(request.POST.get('quantidade') or 0)
+
+        if request.FILES.get('imagem'):
+            sorvete.imagem = request.FILES['imagem']
+
+        sorvete.save()
+        return JsonResponse(serializar_sorvete_admin(sorvete), status=201)
+
+    return JsonResponse({'erro': 'Método não permitido.'}, status=405)
+
+
+def api_admin_sabor_detalhe(request, sorvete_id):
+    if not _admin_required(request):
+        return JsonResponse({'erro': 'Não autorizado.'}, status=401)
+
+    try:
+        sorvete = Sorvete.objects.get(id=sorvete_id)
+    except Sorvete.DoesNotExist:
+        return JsonResponse({'erro': 'Sabor não encontrado.'}, status=404)
+
+    if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
+        preco = request.POST.get('preco', '0')
+
+        if not nome:
+            return JsonResponse({'erro': 'Informe o nome do sabor.'}, status=400)
+
+        sorvete.nome_sorvete = nome
+        sorvete.preco = Decimal(str(preco).replace(',', '.'))
+        sorvete.ativo = request.POST.get('ativo') == 'true'
+
+        if hasattr(sorvete, 'quantidade'):
+            sorvete.quantidade = int(request.POST.get('quantidade') or 0)
+
+        if request.FILES.get('imagem'):
+            sorvete.imagem = request.FILES['imagem']
+
+        sorvete.save()
+        return JsonResponse(serializar_sorvete_admin(sorvete))
+
+    return JsonResponse({'erro': 'Método não permitido.'}, status=405)

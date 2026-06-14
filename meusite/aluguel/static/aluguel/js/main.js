@@ -75,7 +75,7 @@ function atualizarResumoReserva() {
     if (!res) return;
 
     const itens = saboresCache.filter(s => (carrinho[s.id]?.qtd || 0) > 0);
-    
+
     if (itens.length === 0 && !dataSelecionada) {
         res.innerHTML = '<p style="text-align:center;color:#888;">Selecione sabores e uma data para ver o resumo.</p>';
         return;
@@ -83,41 +83,50 @@ function atualizarResumoReserva() {
 
     let subtotalSorvetes = 0;
     let html = '<ul style="list-style:none;padding:0;margin:0;">';
-    
+
     itens.forEach(s => {
         const q = carrinho[s.id].qtd;
         const p = q * parseFloat(s.preco);
         subtotalSorvetes += p;
+
         html += `<li style="display:flex;justify-content:space-between;border-bottom:1px dashed #eee;padding:4px 0;">
-            <span>${q}x ${s.nome}</span><span>R$ ${p.toFixed(2)}</span></li>`;
+            <span>${q}x ${s.nome}</span>
+            <span>R$ ${p.toFixed(2)}</span>
+        </li>`;
     });
 
-    // Simulação visual da sua regra taxa_aluguel do Python
     const taxaBase = subtotalSorvetes >= 300 ? 0 : 50;
     const taxaTotal = taxaBase * quantidadeCarrinhosSelecionada;
     const totalGeral = subtotalSorvetes + taxaTotal;
 
     html += `<li style="display:flex;justify-content:space-between;margin-top:10px;color:${taxaTotal === 0 ? 'green' : '#555'};">
-        <span>Aluguel (${quantidadeCarrinhosSelecionada}x Carrinho) ${taxaTotal === 0 ? '(Grátis!)' : ''}</span><span>R$ ${taxaTotal.toFixed(2)}</span></li>`;
-    
+        <span>Aluguel (${quantidadeCarrinhosSelecionada}x Carrinho) ${taxaTotal === 0 ? '(Gratis!)' : ''}</span>
+        <span>R$ ${taxaTotal.toFixed(2)}</span>
+    </li>`;
+
     html += '</ul>';
 
     if (dataSelecionada) {
         const dataFormatada = dataSelecionada.split('-').reverse().join('/');
-        html += `<p style="margin-top:15px; font-size:0.9rem;"><strong>📅 Data:</strong> ${dataFormatada}</p>`;
+        html += `<p style="margin-top:15px; font-size:0.9rem;"><strong>Data:</strong> ${dataFormatada}</p>`;
     }
 
     html += `<div style="margin-top:10px;padding-top:10px;border-top:2px solid #333;display:flex;justify-content:space-between;font-weight:bold;font-size:1.1rem;">
-        <span>TOTAL:</span><span>R$ ${totalGeral.toFixed(2)}</span></div>`;
-    
+        <span>TOTAL:</span>
+        <span>R$ ${totalGeral.toFixed(2)}</span>
+    </div>`;
+
     res.innerHTML = html;
 }
 
 // --- FINALIZAÇÃO E INTEGRAÇÃO (URL CORRIGIDA) ---
 
 function finalizarPedido() {
-    if (!dataSelecionada) return alert("Por favor, selecione uma data no calendário.");
-    
+    if (!dataSelecionada) {
+        alert("Por favor, selecione uma data no calendario.");
+        return;
+    }
+
     const selecionados = saboresCache
         .filter(s => (carrinho[s.id]?.qtd || 0) > 0)
         .map(s => ({ id: s.id, qtd: carrinho[s.id].qtd }));
@@ -147,6 +156,45 @@ function finalizarPedido() {
     // Abre o contrato
     abrirModalContrato();
     document.getElementById('corpo-contrato-scroll').scrollTop = 0;
+}
+
+async function enviarFormularioServidor() {
+    const selecionados = saboresCache
+        .filter(s => (carrinho[s.id]?.qtd || 0) > 0)
+        .map(s => ({ id: s.id, qtd: carrinho[s.id].qtd }));
+
+    const payload = {
+        nome: document.getElementById('cli-nome').value.trim(),
+        telefone: document.getElementById('cli-tel').value.replace(/\D/g, ""),
+        endereco: document.getElementById('cli-end').value.trim(),
+        email: document.getElementById('cli-email').value.trim(),
+        descricao: document.getElementById('cli-obs').value.trim(),
+        data: dataSelecionada,
+        quantidade_carrinhos: quantidadeCarrinhosSelecionada,
+        sabores: selecionados
+    };
+
+    try {
+        const response = await fetch('/api/reserva/criar/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const res = await response.json();
+
+        if (res.status === 'sucesso') {
+            window.location.href = res.whatsapp_url;
+        } else {
+            alert("Erro: " + (res.message || "Falha ao criar reserva"));
+        }
+    } catch (e) {
+        console.error("Erro na requisicao:", e);
+        alert("Erro de conexao com o servidor.");
+    }
 }
 
 async function enviarFormularioServidor() {
@@ -387,8 +435,9 @@ function atualizarSeletorCarrinhos(dataISO) {
 
     secao.style.display = 'block';
     select.innerHTML = '';
+    
     if (disponiveisHoje === 1) {
-    aviso.innerText = '1 carrinho disponível para esta data';
+        aviso.innerText = '1 carrinho disponível para esta data';
     } else {
         aviso.innerText = `${disponiveisHoje} carrinhos disponíveis para esta data`;
     }
@@ -400,7 +449,14 @@ function atualizarSeletorCarrinhos(dataISO) {
         select.appendChild(opt);
     }
     
-    quantidadeCarrinhosSelecionada = 1; 
+    // --- CORREÇÃO DA LÓGICA DE QUANTIDADE ---
+    // Se a quantidade que o usuário queria for maior do que a disponível hoje, reduz para o máximo possível.
+    if (quantidadeCarrinhosSelecionada > disponiveisHoje) {
+        quantidadeCarrinhosSelecionada = disponiveisHoje;
+    }
+    
+    // Força o elemento visual (select) a mostrar o valor da variável
+    select.value = quantidadeCarrinhosSelecionada;
 }
 
 function atualizarQuantidadeCarrinhos() {

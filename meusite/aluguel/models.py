@@ -22,19 +22,12 @@ class Sorvete(models.Model):
     ativo = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
-        # Só tenta calcular o total se a reserva já tiver ID
-        if self.pk: 
-            if not self.valor_pedido or self.status == 'pendente':
-                self.valor_pedido = self.total_pedido()
-
         super().save(*args, **kwargs)
 
         if self.imagem:
             img = Image.open(self.imagem.path)
-
             max_size = (400, 400)
             img.thumbnail(max_size)
-
             img.save(self.imagem.path)
 
     def __str__(self):

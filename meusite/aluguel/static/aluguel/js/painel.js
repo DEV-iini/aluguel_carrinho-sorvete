@@ -1,10 +1,4 @@
 /* ══════════════════════════════════════════════
-   CONSTANTES
-══════════════════════════════════════════════ */
-const MAX_RESERVAS_DIA = 3;
-const NUM_CARRINHOS    = 3;
-
-/* ══════════════════════════════════════════════
    ESTADO GLOBAL
 ══════════════════════════════════════════════ */
 const state = {
@@ -24,6 +18,14 @@ const state = {
 const fmt    = d  => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const fmtBR  = iso => { const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; };
 const fmtMes = dt  => dt.toLocaleString('pt-BR', { month:'long', year:'numeric' });
+
+function moedaBR(valor) {
+  const numero = Number(String(valor ?? 0).replace(',', '.'));
+  return numero.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  });
+}
 
 /* ══════════════════════════════════════════════
    API HELPERS
@@ -100,7 +102,7 @@ async function carregarDados() {
   }
 
   try {
-    state.sabores = await apiFetch('/api/sabores/');
+    state.sabores = await apiFetch('/api/admin/sabores/');
   } catch (e) {
     console.error('Erro ao carregar sabores:', e);
     state.sabores = [];
@@ -127,12 +129,26 @@ async function carregarDados() {
    HELPERS DE NEGÓCIO
 ══════════════════════════════════════════════ */
 function reservasDoDia(iso) {
-  return state.reservas.filter(r => r.data === iso && r.status !== 'cancelado');
+  return state.reservas.filter(r => r.data === iso && r.status === 'confirmado');
+}
+
+function quantidadeCarrinhosReserva(r) {
+  const qtd = parseInt(r.quantidade_carrinhos || 1, 10);
+  return Number.isFinite(qtd) && qtd > 0 ? qtd : 1;
+}
+
+function carrinhosOcupadosDoDia(iso) {
+  return reservasDoDia(iso).reduce((total, r) => {
+    return total + quantidadeCarrinhosReserva(r);
+  }, 0);
+}
+
+function carrinhosDisponiveisNoDia(iso) {
+  return Math.max(0, limiteReservasDia() - carrinhosOcupadosDoDia(iso));
 }
 
 function diaDisponivel(iso) {
-  if (state.bloqueios.find(b => b.data === iso)) return false;
-  return reservasDoDia(iso).length < MAX_RESERVAS_DIA;
+  return carrinhosDisponiveisNoDia(iso) > 0;
 }
 
 /* ══════════════════════════════════════════════
@@ -179,9 +195,10 @@ function renderMetricas() {
   const confirmadas = state.reservas.filter(r => r.status === 'confirmado').length;
   const total       = state.reservas.filter(r => r.status !== 'cancelado').length;
 
+  const totalCarrinhos = totalCarrinhosAtivos();
   const hoje     = fmt(new Date());
-  const resHoje  = reservasDoDia(hoje).length;
-  const disponHj = Math.max(0, NUM_CARRINHOS - resHoje);
+  const resHoje  = carrinhosOcupadosDoDia(hoje);
+  const disponHj = Math.max(0, totalCarrinhos - resHoje);
 
   document.getElementById('metPendentes').textContent   = pendentes;
   document.getElementById('metConfirmadas').textContent = confirmadas;
@@ -195,18 +212,20 @@ function renderMetricas() {
    CALENDÁRIO
 ══════════════════════════════════════════════ */
 function renderCalendario() {
-  const y    = state.viewDate.getFullYear();
-  const m    = state.viewDate.getMonth();
+  const y = state.viewDate.getFullYear();
+  const m = state.viewDate.getMonth();
+
   const hoje = new Date();
   hoje.setDate(hoje.getDate() + 1);
   const primeiraDataPermitida = fmt(hoje);
 
+  const limite = limiteReservasDia();
+
   document.getElementById('calTitle').textContent = fmtMes(state.viewDate);
 
-  const primeiro  = new Date(y, m, 1).getDay();
+  const primeiro = new Date(y, m, 1).getDay();
   const totalDias = new Date(y, m + 1, 0).getDate();
-  const prevDias  = new Date(y, m, 0).getDate();
-  const bloqSet   = new Set(state.bloqueios.map(b => b.data));
+  const prevDias = new Date(y, m, 0).getDate();
 
   let html = '';
 
@@ -215,45 +234,55 @@ function renderCalendario() {
   }
 
   for (let d = 1; d <= totalDias; d++) {
-    const iso   = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dt    = new Date(y, m, d);
+    const iso = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const dt = new Date(y, m, d);
+
     const isPast = iso < primeiraDataPermitida;
-    const isToday   = dt.toDateString() === hoje.toDateString();
-    const isBlocked = bloqSet.has(iso);
-    const resDodia  = reservasDoDia(iso);
-    const count     = resDodia.length;
+    const isToday = dt.toDateString() === hoje.toDateString();
+
+    const resDodia = reservasDoDia(iso);
+    const count = carrinhosOcupadosDoDia(iso);
+
+    const percentual = limite > 0 ? (count / limite) * 100 : 100;
 
     let cls = 'cal-cell';
-    if (isPast)                           cls += ' past';
-    if (isToday)                          cls += ' today';
-    if (isBlocked)                        cls += ' blocked';
-    if (!isBlocked && count >= MAX_RESERVAS_DIA) cls += ' full';
+
+    if (isPast) cls += ' past';
+    if (isToday) cls += ' today';
+    if (limite <= 0 || count >= limite) cls += ' full';
 
     let capClass = 'ok';
-    if (count >= MAX_RESERVAS_DIA - 1 && count < MAX_RESERVAS_DIA) capClass = 'warn';
-    if (count >= MAX_RESERVAS_DIA) capClass = 'full';
+
+    if (limite <= 0 || count >= limite) {
+      capClass = 'full';
+    } else if (percentual >= 40) {
+      capClass = 'warn';
+    }
 
     const chips = resDodia.slice(0, 2).map(r =>
       `<div class="chip ${r.status}" onclick="event.stopPropagation();verDetalhe(${r.id})" title="${r.cliente_nome}">${r.cliente_nome}</div>`
     ).join('');
-    const more = resDodia.length > 2 ? `<div class="chip-more">+${resDodia.length - 2} mais</div>` : '';
 
-    const capBadge = !isPast && !isBlocked
-      ? `<span class="day-capacity ${capClass}">${count}/${MAX_RESERVAS_DIA}</span>` : '';
-    const bloqLabel = isBlocked
-      ? `<div style="font-size:9px;color:var(--mid);margin-top:2px">🔒</div>` : '';
+    const more = resDodia.length > 2
+      ? `<div class="chip-more">+${resDodia.length - 2} mais</div>`
+      : '';
 
-    const podeClicar = !isPast && !isBlocked && count < MAX_RESERVAS_DIA;
+    const capBadge = !isPast
+      ? `<span class="day-capacity ${capClass}">${count}/${limite}</span>`
+      : '';
+
+    const podeClicar = !isPast && limite > 0 && count < limite;
 
     html += `
       <div class="${cls}" ${podeClicar ? `onclick="clickDia('${iso}')"` : ''}>
         <div class="day-n">${d}</div>
         <div class="event-chips">${chips}${more}</div>
-        ${capBadge}${bloqLabel}
+        ${capBadge}
       </div>`;
   }
 
   const trailing = (primeiro + totalDias) % 7;
+
   if (trailing > 0) {
     for (let d = 1; d <= 7 - trailing; d++) {
       html += `<div class="cal-cell other-month"><div class="day-n">${d}</div></div>`;
@@ -291,7 +320,7 @@ function clickDia(iso) {
   document.getElementById('fData').value = iso;
   verificarCapacidadeData(iso);
   popularSelectCarrinhos(iso);
-  openModal('modalReserva');
+  showToast(`Data selecionada: ${fmtBR(iso)}`, 'info');
 }
 
 async function desbloquearData(bloqueioId) {
@@ -320,14 +349,21 @@ function renderPendentes() {
     el.innerHTML = `<p style="font-size:13px;color:var(--mid);text-align:center;padding:16px">Nenhuma reserva pendente ✓</p>`;
     return;
   }
-  el.innerHTML = pendentes.map(r => `
+  el.innerHTML = pendentes.map(r => {
+  const qtdCarrinhos = quantidadeCarrinhosReserva(r);
+  const textoCarrinhos = qtdCarrinhos === 1 ? '1 carrinho' : `${qtdCarrinhos} carrinhos`;
+
+  return `
     <div class="reserva-mini" onclick="verDetalhe(${r.id})">
       <h5>${r.cliente_nome}</h5>
-      <p>📅 ${fmtBR(r.data)}</p>
-      <p>🛒 ${r.carrinho_nome}</p>
+      <p>Data: ${fmtBR(r.data)}</p>
+      <p>Carrinhos: ${textoCarrinhos}</p>
+      <p>Valor dos carrinhos: <strong>${moedaBR(r.valor_carrinhos || r.taxa_aluguel)}</strong></p>
+      <p>Total do pedido: <strong>${moedaBR(r.total)}</strong></p>
       <span class="badge pendente">Pendente</span>
     </div>
-  `).join('');
+  `;
+}).join('');
 }
 
 /* ══════════════════════════════════════════════
@@ -337,16 +373,23 @@ function verDetalhe(id) {
   const r = state.reservas.find(x => x.id === id);
   if (!r) return;
 
+  const qtdCarrinhos = quantidadeCarrinhosReserva(r);
+  const textoCarrinhos = qtdCarrinhos === 1 ? '1 carrinho' : `${qtdCarrinhos} carrinhos`;
+  const valorCarrinhos = r.valor_carrinhos || r.taxa_aluguel || 0;
+
   document.getElementById('detalheBody').innerHTML = `
-    <div class="detail-row"><span class="detail-label">Cliente</span><span class="detail-val">${r.cliente_nome}</span></div>
-    <div class="detail-row"><span class="detail-label">E-mail</span><span class="detail-val">${r.cliente_email || '—'}</span></div>
-    <div class="detail-row"><span class="detail-label">Telefone</span><span class="detail-val">${r.cliente_telefone || '—'}</span></div>
-    <div class="detail-row"><span class="detail-label">Carrinho</span><span class="detail-val">${r.carrinho_nome || '—'}</span></div>
-    <div class="detail-row"><span class="detail-label">Data</span><span class="detail-val">${fmtBR(r.data)}</span></div>
-    <div class="detail-row"><span class="detail-label">Sabores</span><span class="detail-val">${r.sabores || '—'}</span></div>
-    <div class="detail-row"><span class="detail-label">Status</span><span class="badge ${r.status}">${r.status}</span></div>
-    <div class="detail-row"><span class="detail-label">Observações</span><span class="detail-val">${r.observacoes || '—'}</span></div>
-  `;
+  <div class="detail-row"><span class="detail-label">Cliente</span><span class="detail-val">${r.cliente_nome}</span></div>
+  <div class="detail-row"><span class="detail-label">E-mail</span><span class="detail-val">${r.cliente_email || '—'}</span></div>
+  <div class="detail-row"><span class="detail-label">Telefone</span><span class="detail-val">${r.cliente_telefone || '—'}</span></div>
+  <div class="detail-row"><span class="detail-label">Carrinhos</span><span class="detail-val">${textoCarrinhos}</span></div>
+  <div class="detail-row"><span class="detail-label">Data</span><span class="detail-val">${fmtBR(r.data)}</span></div>
+  <div class="detail-row"><span class="detail-label">Sabores</span><span class="detail-val">${r.sabores || '—'}</span></div>
+  <div class="detail-row"><span class="detail-label">Subtotal dos sorvetes</span><span class="detail-val">${moedaBR(r.subtotal)}</span></div>
+  <div class="detail-row"><span class="detail-label">Valor dos carrinhos</span><span class="detail-val">${moedaBR(valorCarrinhos)}</span></div>
+  <div class="detail-row"><span class="detail-label">Total do pedido</span><span class="detail-val"><strong>${moedaBR(r.total)}</strong></span></div>
+  <div class="detail-row"><span class="detail-label">Status</span><span class="badge ${r.status}">${r.status}</span></div>
+  <div class="detail-row"><span class="detail-label">Observações</span><span class="detail-val">${r.observacoes || '—'}</span></div>
+`;
 
   const botoes = document.getElementById('detalheBotoes');
   botoes.innerHTML = '';
@@ -388,22 +431,27 @@ function verDetalhe(id) {
 /* ══════════════════════════════════════════════
    ALTERAR STATUS (persiste no banco)
 ══════════════════════════════════════════════ */
-async function mudarStatus(id, novoStatus) {
+async function mudarStatus(id, status) {
   try {
-    await apiFetch(`/api/reservas/${id}/`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: novoStatus }),
+    const atualizada = await apiFetch(`/api/reservas/${id}/status/`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
     });
-    // Atualizar estado local sem precisar rebuscar tudo
-    const r = state.reservas.find(x => x.id === id);
-    if (r) r.status = novoStatus;
 
-    const msgs = { confirmado: 'Reserva confirmada! ✓', cancelado: 'Reserva cancelada.', pendente: 'Status alterado.' };
-    showToast(msgs[novoStatus] || 'Atualizado!', novoStatus === 'confirmado' ? 'success' : 'info');
-    closeModal('modalDetalhe');
+    state.reservas = state.reservas.map(r => r.id === id ? atualizada : r);
+
     renderTudo();
+
+    if (document.getElementById('modalDetalhe')?.classList.contains('open')) {
+      verDetalhe(id);
+    }
+
+    showToast(
+      status === 'confirmado' ? 'Reserva confirmada!' : 'Reserva cancelada!',
+      status === 'confirmado' ? 'success' : 'info'
+    );
   } catch (e) {
-    showToast('Erro: ' + e.message, 'error');
+    showToast('Erro ao atualizar reserva: ' + e.message, 'error');
   }
 }
 
@@ -411,14 +459,24 @@ async function mudarStatus(id, novoStatus) {
    CRIAR RESERVA (admin → banco)
 ══════════════════════════════════════════════ */
 function verificarCapacidadeData(iso) {
-  const count = reservasDoDia(iso).length;
+  const limite = limiteReservasDia();
+  const ocupados = carrinhosOcupadosDoDia(iso);
+  const disponiveis = Math.max(0, limite - ocupados);
   const aviso = document.getElementById('fDataAviso');
+
   if (!aviso) return;
-  if (count >= MAX_RESERVAS_DIA) {
-    aviso.textContent = `⚠️ Esta data já tem ${count}/${MAX_RESERVAS_DIA} reservas — limite atingido!`;
+
+  if (limite <= 0) {
+    aviso.textContent = 'Nenhum carrinho ativo no momento.';
+    aviso.style.color = 'var(--red)';
+    return;
+  }
+
+  if (disponiveis <= 0) {
+    aviso.textContent = `Esta data já está lotada: ${ocupados}/${limite} carrinhos ocupados.`;
     aviso.style.color = 'var(--red)';
   } else {
-    aviso.textContent = `${count}/${MAX_RESERVAS_DIA} reservas neste dia.`;
+    aviso.textContent = `${disponiveis} de ${limite} carrinhos disponíveis nesta data.`;
     aviso.style.color = 'var(--mid)';
   }
 }
@@ -563,45 +621,22 @@ function renderSaboresAdmin() {
   const grid = document.getElementById('saboresAdminGrid');
   if (!grid) return;
 
+  if (!state.sabores.length) {
+    grid.innerHTML = `<p style="color:var(--mid);padding:20px">Nenhum sabor cadastrado.</p>`;
+    return;
+  }
+
   grid.innerHTML = state.sabores.map(s => `
-    <div class="sabor-row">
+    <button type="button" class="sabor-admin-card ${s.ativo ? '' : 'inativo'}" onclick="abrirModalEditarSabor(${s.id})">
       ${
         s.imagem_url
-          ? `<img src="${s.imagem_url}" class="sabor-row-img" alt="${s.nome}">`
-          : `<span class="sabor-row-emoji">🍦</span>`
+          ? `<img src="${s.imagem_url}" alt="${s.nome}">`
+          : `<div class="sabor-admin-placeholder">Sorvete</div>`
       }
-      <span class="sabor-row-name">${s.nome}</span>
-      <span style="font-size:12px;color:var(--mid);font-weight:700">R$ ${parseFloat(s.preco).toFixed(2)}</span>
-    </div>
+      <span>${s.nome}</span>
+      ${s.ativo ? '' : '<small>Inativo</small>'}
+    </button>
   `).join('');
-}
-
-async function toggleSaborAdmin(saborId, data) {
-  if (!data) { showToast('Selecione uma data primeiro.', 'error'); return; }
-
-  const dispAtual = state.saboresDisponibilidade[data]?.[String(saborId)] !== false;
-  const novoValor = !dispAtual;
-
-  try {
-    await apiFetch('/api/sabores-disponibilidade/', {
-      method: 'POST',
-      body: JSON.stringify({ sabor_id: saborId, data, disponivel: novoValor }),
-    });
-
-    if (!state.saboresDisponibilidade[data]) state.saboresDisponibilidade[data] = {};
-    state.saboresDisponibilidade[data][String(saborId)] = novoValor;
-
-    const sabor = state.sabores.find(s => s.id === saborId);
-    showToast(
-      novoValor
-        ? `${sabor?.nome} disponível para ${fmtBR(data)}`
-        : `${sabor?.nome} desativado para ${fmtBR(data)}`,
-      'info',
-    );
-    renderSaboresAdmin();
-  } catch (e) {
-    showToast('Erro ao atualizar: ' + e.message, 'error');
-  }
 }
 
 /* ══════════════════════════════════════════════
@@ -610,23 +645,53 @@ async function toggleSaborAdmin(saborId, data) {
 function renderCarrinhos() {
   const el = document.getElementById('carrinhosList');
   if (!el) return;
-  const hoje    = fmt(new Date());
-  const resHoje = reservasDoDia(hoje);
 
-  el.innerHTML = state.carrinhos.map(c => {
-    const ocupado = resHoje.find(r => r.carrinho_id === c.id);
-    return `
-      <div class="carrinho-item">
-        <div class="carrinho-num">${c.id}</div>
-        <div class="carrinho-name">${c.nome}</div>
-        <span class="carrinho-status-pill ${ocupado ? 'busy' : 'available'}">${ocupado ? '📅 Reservado hoje' : '✓ Disponível'}</span>
-      </div>`;
-  }).join('') + `
-    <div style="margin-top:12px;padding:14px;background:var(--lavender-xl);border-radius:12px;font-size:13px;color:var(--mid);line-height:1.6">
-      <strong style="color:var(--dark)">Regra de capacidade:</strong><br>
-      Máximo de <strong style="color:var(--lavender-d)">${MAX_RESERVAS_DIA} reservas por dia</strong> — uma por carrinho.<br>
-      Dias com ${MAX_RESERVAS_DIA} reservas são automaticamente marcados como indisponíveis na página de usuários.
-    </div>`;
+  el.innerHTML = state.carrinhos.map(c => `
+    <div class="carrinho-item">
+      <div class="carrinho-num">${c.id}</div>
+
+      <div class="carrinho-name">
+        Carrinho ${c.id}
+      </div>
+
+      <input
+        id="carrinho-preco-${c.id}"
+        class="form-control"
+        type="number"
+        step="0.01"
+        value="${c.preco_diaria}"
+        style="max-width:120px"
+      >
+
+      <label style="font-size:12px;font-weight:800">
+        <input type="checkbox" id="carrinho-status-${c.id}" ${c.status ? 'checked' : ''}>
+        Ativo
+      </label>
+
+      <button class="btn btn-primary btn-sm" onclick="salvarCarrinho(${c.id})">
+        Salvar
+      </button>
+    </div>
+  `).join('');
+}
+
+async function salvarCarrinho(id) {
+  try {
+    const atualizado = await apiFetch(`/api/carrinhos/${id}/`, {
+      method: 'POST',
+      body: JSON.stringify({
+        preco_diaria: document.getElementById(`carrinho-preco-${id}`).value,
+        status: document.getElementById(`carrinho-status-${id}`).checked,
+      }),
+    });
+
+    state.carrinhos = state.carrinhos.map(c => c.id === id ? atualizado : c);
+
+    renderTudo();
+    showToast('Carrinho atualizado!', 'success');
+  } catch (e) {
+    showToast('Erro ao salvar carrinho: ' + e.message, 'error');
+  }
 }
 
 /* ══════════════════════════════════════════════
@@ -818,4 +883,82 @@ async function recarregarPainel() {
   renderTudo();
 
   showToast('Painel atualizado!', 'success');
+}
+
+function totalCarrinhosAtivos() {
+  return state.carrinhos.filter(c => c.status !== false).length;
+}
+
+function limiteReservasDia() {
+  return totalCarrinhosAtivos();
+}
+
+function abrirModalNovoSabor() {
+  document.getElementById('modalSaborTitulo').textContent = 'Novo Sabor';
+  document.getElementById('saborEditId').value = '';
+  document.getElementById('saborEditNome').value = '';
+  document.getElementById('saborEditPreco').value = '';
+  document.getElementById('saborEditQuantidade').value = '0';
+  document.getElementById('saborEditImagem').value = '';
+  document.getElementById('saborEditAtivo').checked = true;
+
+  openModal('modalSabor');
+}
+
+function abrirModalEditarSabor(id) {
+  const sabor = state.sabores.find(s => s.id === id);
+  if (!sabor) return;
+
+  document.getElementById('modalSaborTitulo').textContent = 'Editar Sabor';
+  document.getElementById('saborEditId').value = sabor.id;
+  document.getElementById('saborEditNome').value = sabor.nome;
+  document.getElementById('saborEditPreco').value = sabor.preco;
+  document.getElementById('saborEditQuantidade').value = sabor.quantidade || 0;
+  document.getElementById('saborEditImagem').value = '';
+  document.getElementById('saborEditAtivo').checked = Boolean(sabor.ativo);
+
+  openModal('modalSabor');
+}
+
+async function salvarSaborModal() {
+  const id = document.getElementById('saborEditId').value;
+  const form = new FormData();
+
+  form.append('nome', document.getElementById('saborEditNome').value.trim());
+  form.append('preco', document.getElementById('saborEditPreco').value);
+  form.append('quantidade', document.getElementById('saborEditQuantidade').value);
+  form.append('ativo', document.getElementById('saborEditAtivo').checked ? 'true' : 'false');
+
+  const img = document.getElementById('saborEditImagem').files[0];
+  if (img) form.append('imagem', img);
+
+  const url = id ? `/api/admin/sabores/${id}/` : '/api/admin/sabores/';
+
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      body: form,
+      credentials: 'include',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+      }
+    });
+
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+    const salvo = await resp.json();
+
+    if (id) {
+      state.sabores = state.sabores.map(s => s.id === salvo.id ? salvo : s);
+      showToast('Sabor atualizado!', 'success');
+    } else {
+      state.sabores.push(salvo);
+      showToast('Sabor cadastrado!', 'success');
+    }
+
+    closeModal('modalSabor');
+    renderSaboresAdmin();
+  } catch (e) {
+    showToast('Erro ao salvar sabor: ' + e.message, 'error');
+  }
 }

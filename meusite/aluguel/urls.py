@@ -9,6 +9,10 @@ urlpatterns = [
 
     # Rotas de Dados (Vêm do api.py)
     path('api/sabores/', api.api_sabores, name='api_sabores'),
+    path('api/admin/sabores/', api.api_admin_sabores, name='api_admin_sabores'),
+    path('api/admin/sabores/<int:sorvete_id>/', api.api_admin_sabor_detalhe, name='api_admin_sabor_detalhe'),
+
+
     path('api/disponibilidade/', api.api_disponibilidade, name='api_disponibilidade'),
     path('api/reserva/criar/', api.api_criar_reserva, name='api_criar_reserva'),
 
@@ -21,5 +25,8 @@ urlpatterns = [
     path('api/reservas/<int:reserva_id>/status/', api.api_reserva_status, name='api_reserva_status'),
 
     path('api/clientes/', api.api_clientes, name='api_clientes'),
+
     path('api/carrinhos/', api.api_carrinhos, name='api_carrinhos'),
+
+
 ]

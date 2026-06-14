@@ -84,9 +84,6 @@
       <button class="btn btn-outline btn-sm" onclick="recarregarPainel()">
         🔄 Atualizar
       </button>
-      <button class="btn btn-primary btn-sm" onclick="openModal('modalReserva')">
-        + Nova Reserva
-      </button>
     </div>
   </div>
 
@@ -194,8 +191,8 @@
           <div class="filter-tabs" id="reservasTabs">
             <button class="filter-tab active" onclick="filtrarReservas('todas',this)">Todas</button>
             <button class="filter-tab" onclick="filtrarReservas('pendente',this)">Pendentes</button>
-            <button class="filter-tab" onclick="filtrarReservas('confirmada',this)">Confirmadas</button>
-            <button class="filter-tab" onclick="filtrarReservas('cancelada',this)">Canceladas</button>
+            <button class="filter-tab" onclick="filtrarReservas('confirmado',this)">Confirmadas</button>
+            <button class="filter-tab" onclick="filtrarReservas('cancelado',this)">Canceladas</button>
           </div>
         </div>
         <div style="overflow-x:auto">
@@ -268,13 +265,12 @@
     <div id="view-sabores" class="view-section">
       <div class="sabores-section">
         <div class="sabores-header">
-          <h2>🍨 Disponibilidade de Sabores</h2>
+          <h2>Sabores</h2>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalNovoSabor()">
+            + Novo Sabor
+          </button>
         </div>
-        <div class="sabores-controls">
-          <label>Gerenciar disponibilidade para:</label>
-          <input type="date" id="saborDataFiltro" onchange="renderSaboresAdmin()"/>
-          <span style="font-size:12px;color:var(--mid)">— ative/desative sabores para a data selecionada</span>
-        </div>
+
         <div class="sabores-grid-admin" id="saboresAdminGrid"></div>
       </div>
     </div>
@@ -401,6 +397,44 @@
       </button>
     </div>
 
+  </div>
+</div>
+
+<div class="overlay" id="modalSabor">
+  <div class="modal">
+    <div class="modal-title" id="modalSaborTitulo">Editar Sabor</div>
+
+    <input type="hidden" id="saborEditId">
+
+    <div class="form-group">
+      <label class="form-label">Nome *</label>
+      <input type="text" class="form-control" id="saborEditNome">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Preço *</label>
+      <input type="number" step="0.01" class="form-control" id="saborEditPreco">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Quantidade em estoque</label>
+      <input type="number" class="form-control" id="saborEditQuantidade">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Foto</label>
+      <input type="file" class="form-control" id="saborEditImagem" accept="image/*">
+    </div>
+
+    <label style="font-size:13px;font-weight:800">
+      <input type="checkbox" id="saborEditAtivo">
+      Ativo
+    </label>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalSabor')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarSaborModal()">Salvar Sabor</button>
+    </div>
   </div>
 </div>
 
