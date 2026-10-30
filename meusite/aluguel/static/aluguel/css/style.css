@@ -1152,7 +1152,7 @@ body {
     max-height: calc(100dvh - 96px);
     overflow-y: auto;
     padding-right: 8px;
-    padding-bottom: 16px;
+    padding-bottom: 30px;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -1247,11 +1247,12 @@ body {
 
 @media (max-width: 560px) {
     .modal {
-        padding: 14px;
+    padding: 14px 14px 28px 14px; /* topo, laterais, BASE (28px) */
+    padding-bottom: max(28px, env(safe-area-inset-bottom)); /* proteção extra para iPhones com barra gestual */
     }
 
     .modal-content {
-        padding: 22px;
+        padding: 22px 22px 32px 22px;
         margin: 18px auto;
         border-radius: 16px;
     }
@@ -1374,6 +1375,7 @@ body {
     gap: 12px;
     margin-top: 14px;
     flex-shrink: 0; /* Garante que os botões fiquem sempre visíveis */
+    margin-bottom: 14px;
 }
 
 .contrato-acoes .btn-finalizar {
@@ -1402,8 +1404,7 @@ body {
 @media (max-width: 640px) {
     .contrato-content {
         max-width: 100%;
-        max-height: calc(100dvh - 20px);
-        padding: 16px;
+        padding: 16px 16px 26px 16px;
     }
 
     .contrato-header {
@@ -1416,6 +1417,7 @@ body {
 
     .contrato-acoes {
         flex-direction: column;
+        margin-bottom: 10px;
     }
 }
 
