@@ -1271,17 +1271,26 @@ body {
 /* ==========================================================================
    MODAL DO CONTRATO
    ========================================================================== */
+/* ==========================================================================
+   MODAL DO CONTRATO (Corrigido para telas pequenas)
+   ========================================================================== */
 .contrato-content {
-    max-height: calc(100vh - 40px);
+    /* Trocado para 100dvh para respeitar a altura real da tela mobile */
+    max-height: calc(100dvh - 32px);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    /* CORREÇÃO: Permite a rolagem geral do modal se necessário */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
 }
 
 .contrato-header {
     text-align: center;
-    margin-bottom: 18px;
+    margin-bottom: 14px;
     padding-right: 34px;
+    flex-shrink: 0; /* Impede que o topo seja esmagado */
 }
 
 .contrato-header h2 {
@@ -1308,15 +1317,30 @@ body {
     color: var(--oggi-rosa) !important;
 }
 
+/* NOVO: Adicionado para o texto do contrato ter sua própria barra de rolagem interna */
+.contrato-content .modal-scroll-area,
+.contrato-texto-scroll {
+    flex: 1 1 auto;
+    min-height: 140px;
+    max-height: 38dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    padding-right: 6px;
+    margin-bottom: 10px;
+}
+
 .contrato-aceite {
-    margin-top: 16px;
+    margin-top: 12px;
     background-color: rgba(159, 48, 129, 0.05);
-    padding: 14px;
+    padding: 12px;
     border-radius: 12px;
     border: 1px dashed rgba(159, 48, 129, 0.26);
     display: flex;
     gap: 10px;
     align-items: flex-start;
+    flex-shrink: 0; /* Garante que o aceite nunca suma */
 }
 
 .contrato-aceite input {
@@ -1324,13 +1348,14 @@ body {
     transform: scale(1.18);
     cursor: pointer;
     accent-color: var(--oggi-rosa);
+    flex-shrink: 0;
 }
 
 .contrato-aceite label {
     cursor: pointer;
     font-weight: 700;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.45;
     color: var(--oggi-texto);
 }
 
@@ -1347,7 +1372,8 @@ body {
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    margin-top: 16px;
+    margin-top: 14px;
+    flex-shrink: 0; /* Garante que os botões fiquem sempre visíveis */
 }
 
 .contrato-acoes .btn-finalizar {
@@ -1376,6 +1402,8 @@ body {
 @media (max-width: 640px) {
     .contrato-content {
         max-width: 100%;
+        max-height: calc(100dvh - 20px);
+        padding: 16px;
     }
 
     .contrato-header {
